@@ -1,0 +1,9 @@
+stages:
+  data_ingestion:
+    cmd: kedro run --pipeline=data_ingestion
+    deps:
+      - src/financial_forecasting_platform/pipelines/data_ingestion
+      - conf/base/catalog.yml
+      - conf/base/parameters.yml
+    outs:
+      - data/01_raw/raw_data.parquet
