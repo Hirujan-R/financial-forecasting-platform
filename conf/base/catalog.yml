@@ -2,3 +2,15 @@
 #
 # Documentation for this file format can be found in "The Data Catalog"
 # Link: https://docs.kedro.org/en/stable/catalog-data/introduction/#data-catalog
+
+raw_data:
+  type: pandas.ParquetDataset
+  filepath: data/01_raw/raw_data.parquet
+
+cleaned_data:
+  type: pandas.ParquetDataset
+  filepath: data/02_intermediate/cleaned_data.parquet
+
+engineered_data:
+  type: pandas.ParquetDataset
+  filepath: data/04_feature/engineered_data.parquet

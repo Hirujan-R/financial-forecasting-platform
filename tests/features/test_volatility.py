@@ -18,11 +18,11 @@ class TestCreateSimpleReturnVolatilityFeature:
         window = 5
         result = create_simple_return_volatility_feature(sample_ohlcv_df, window_size=window)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             prev = ticker_df["Close"].shift(1)
             daily_ret = (ticker_df["Close"] - prev) / prev
             expected = daily_ret.rolling(window=window).std()
-            vol = result[result["Ticker"] == ticker].sort_index()[f"simple_return_volatility_{window}"]
+            vol = result[result["Ticker"] == ticker].sort_values("Date")[f"simple_return_volatility_{window}"]
             valid = expected.dropna().index.intersection(vol.dropna().index)
             pd.testing.assert_series_equal(
                 vol.loc[valid].reset_index(drop=True),
@@ -54,11 +54,11 @@ class TestCreateLogReturnVolatilityFeature:
         window = 5
         result = create_log_return_volatility_feature(sample_ohlcv_df, window_size=window)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             prev = ticker_df["Close"].shift(1)
             log_ret = np.log(ticker_df["Close"] / prev)
             expected = log_ret.rolling(window=window).std()
-            vol = result[result["Ticker"] == ticker].sort_index()[f"log_return_volatility_{window}"]
+            vol = result[result["Ticker"] == ticker].sort_values("Date")[f"log_return_volatility_{window}"]
             valid = expected.dropna().index.intersection(vol.dropna().index)
             pd.testing.assert_series_equal(
                 vol.loc[valid].reset_index(drop=True),
@@ -92,12 +92,12 @@ class TestCreateBollingerBandsFeatures:
         window = 20
         result = create_bollinger_bands_features(sample_ohlcv_df, window_size=window)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             sma = ticker_df["Close"].rolling(window=window, min_periods=window).mean()
             std = ticker_df["Close"].rolling(window=window, min_periods=window).std()
             upper = sma + 2 * std
             expected = (upper - ticker_df["Close"]) / ticker_df["Close"]
-            col = result[result["Ticker"] == ticker].sort_index()[f"bollinger_upper_distance_{window}"]
+            col = result[result["Ticker"] == ticker].sort_values("Date")[f"bollinger_upper_distance_{window}"]
             valid = expected.dropna().index.intersection(col.dropna().index)
             pd.testing.assert_series_equal(
                 col.loc[valid].reset_index(drop=True),
@@ -110,12 +110,12 @@ class TestCreateBollingerBandsFeatures:
         window = 20
         result = create_bollinger_bands_features(sample_ohlcv_df, window_size=window)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             sma = ticker_df["Close"].rolling(window=window, min_periods=window).mean()
             std = ticker_df["Close"].rolling(window=window, min_periods=window).std()
             lower = sma - 2 * std
             expected = (ticker_df["Close"] - lower) / ticker_df["Close"]
-            col = result[result["Ticker"] == ticker].sort_index()[f"bollinger_lower_distance_{window}"]
+            col = result[result["Ticker"] == ticker].sort_values("Date")[f"bollinger_lower_distance_{window}"]
             valid = expected.dropna().index.intersection(col.dropna().index)
             pd.testing.assert_series_equal(
                 col.loc[valid].reset_index(drop=True),

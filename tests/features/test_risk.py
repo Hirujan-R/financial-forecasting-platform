@@ -18,10 +18,10 @@ class TestCreateDrawdownFeature:
         window = 5
         result = create_drawdown_feature(sample_ohlcv_df, window_size=window)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             peak = ticker_df["Close"].rolling(window=window, min_periods=window).max()
             expected = (ticker_df["Close"] - peak) / peak
-            dd = result[result["Ticker"] == ticker].sort_index()[f"drawdown_{window}"]
+            dd = result[result["Ticker"] == ticker].sort_values("Date")[f"drawdown_{window}"]
             valid = expected.dropna().index.intersection(dd.dropna().index)
             pd.testing.assert_series_equal(
                 dd.loc[valid].reset_index(drop=True),
@@ -58,11 +58,11 @@ class TestCreateRollingWindowMddFeature:
         window = 5
         result = create_rolling_window_mdd_feature(sample_ohlcv_df, window_size=window)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             peak = ticker_df["Close"].rolling(window=window, min_periods=window).max()
             drawdown = (ticker_df["Close"] - peak) / peak
             expected = drawdown.rolling(window=window, min_periods=window).min()
-            mdd = result[result["Ticker"] == ticker].sort_index()[f"rolling_window_mdd_{window}"]
+            mdd = result[result["Ticker"] == ticker].sort_values("Date")[f"rolling_window_mdd_{window}"]
             valid = expected.dropna().index.intersection(mdd.dropna().index)
             pd.testing.assert_series_equal(
                 mdd.loc[valid].reset_index(drop=True),
@@ -94,13 +94,13 @@ class TestCreateRollingSharpeRatioFeature:
         window = 5
         result = create_rolling_sharpe_ratio_feature(sample_ohlcv_df, window_size=window)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             prev = ticker_df["Close"].shift(1)
             daily_ret = (ticker_df["Close"] - prev) / prev
             mean_ret = daily_ret.rolling(window=window, min_periods=window).mean()
             std_ret = daily_ret.rolling(window=window, min_periods=window).std()
             expected = mean_ret / std_ret
-            sharpe = result[result["Ticker"] == ticker].sort_index()[f"sharpe_{window}"]
+            sharpe = result[result["Ticker"] == ticker].sort_values("Date")[f"sharpe_{window}"]
             valid = expected.dropna().index.intersection(sharpe.dropna().index)
             pd.testing.assert_series_equal(
                 sharpe.loc[valid].reset_index(drop=True),

@@ -20,8 +20,8 @@ class TestCreateSimpleMovingAverageFeature:
         window = 5
         result = create_simple_moving_average_feature(sample_ohlcv_df, window_size=window)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
-            sma = result[result["Ticker"] == ticker].sort_index()[f"SMA_{window}"]
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
+            sma = result[result["Ticker"] == ticker].sort_values("Date")[f"SMA_{window}"]
             expected = ticker_df["Close"].rolling(window=window, min_periods=window).mean()
             pd.testing.assert_series_equal(
                 sma.dropna().reset_index(drop=True),
@@ -64,10 +64,10 @@ class TestCreateDistanceFromSmaFeature:
         window = 5
         result = create_distance_from_sma_feature(sample_ohlcv_df, window_size=window)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             sma = ticker_df["Close"].rolling(window=window, min_periods=window).mean()
             expected = (ticker_df["Close"] - sma) / sma
-            dist = result[result["Ticker"] == ticker].sort_index()[f"close_vs_SMA_{window}"]
+            dist = result[result["Ticker"] == ticker].sort_values("Date")[f"close_vs_SMA_{window}"]
             valid = expected.dropna().index.intersection(dist.dropna().index)
             pd.testing.assert_series_equal(
                 dist.loc[valid].reset_index(drop=True),
@@ -95,11 +95,11 @@ class TestCreateEmaFeature:
         window = 5
         result = create_ema_feature(sample_ohlcv_df, window_size=window)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             expected = ticker_df["Close"].ewm(
                 span=window, adjust=False, min_periods=window
             ).mean()
-            ema = result[result["Ticker"] == ticker].sort_index()[f"ema_{window}"]
+            ema = result[result["Ticker"] == ticker].sort_values("Date")[f"ema_{window}"]
             valid = expected.dropna().index.intersection(ema.dropna().index)
             pd.testing.assert_series_equal(
                 ema.loc[valid].reset_index(drop=True),
@@ -127,11 +127,11 @@ class TestCreateEmaCrossoverFeature:
         short, long = 5, 20
         result = create_ema_crossover_feature(sample_ohlcv_df, short_span=short, long_span=long)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             ema_s = ticker_df["Close"].ewm(span=short, adjust=False, min_periods=short).mean()
             ema_l = ticker_df["Close"].ewm(span=long, adjust=False, min_periods=long).mean()
             expected = ema_s - ema_l
-            col = result[result["Ticker"] == ticker].sort_index()[f"ema{short}_minus_ema{long}"]
+            col = result[result["Ticker"] == ticker].sort_values("Date")[f"ema{short}_minus_ema{long}"]
             valid = expected.dropna().index.intersection(col.dropna().index)
             pd.testing.assert_series_equal(
                 col.loc[valid].reset_index(drop=True),

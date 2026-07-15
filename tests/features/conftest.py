@@ -26,7 +26,6 @@ def sample_ohlcv_df():
     df = pd.concat(rows, ignore_index=True)
     df["High"] = df[["Open", "Close", "High"]].max(axis=1)
     df["Low"] = df[["Open", "Close", "Low"]].min(axis=1)
-    df.set_index("Date", inplace=True)
     return df
 
 
@@ -38,6 +37,7 @@ def single_ticker_df():
     close = 100 + np.cumsum(np.random.randn(n) * 1.5)
     df = pd.DataFrame(
         {
+            "Date": dates,
             "Ticker": "AAPL",
             "Open": close + np.random.randn(n) * 0.3,
             "High": close + abs(np.random.randn(n)),
@@ -45,9 +45,7 @@ def single_ticker_df():
             "Close": close,
             "Volume": np.random.randint(500_000, 5_000_000, size=n),
         },
-        index=dates,
     )
-    df.index.name = "Date"
     df["High"] = df[["Open", "Close", "High"]].max(axis=1)
     df["Low"] = df[["Open", "Close", "Low"]].min(axis=1)
     return df

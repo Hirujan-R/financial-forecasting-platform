@@ -18,8 +18,8 @@ class TestCreateVolumePctChangeFeature:
     def test_volume_pct_change_values(self, sample_ohlcv_df):
         result = create_volume_pct_change_feature(sample_ohlcv_df, lag=1)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
-            vol = result[result["Ticker"] == ticker].sort_index()["volume_pct_change"]
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
+            vol = result[result["Ticker"] == ticker].sort_values("Date")["volume_pct_change"]
             prev_vol = ticker_df["Volume"].shift(1)
             expected = (ticker_df["Volume"] - prev_vol) / prev_vol
             valid = expected.dropna().index.intersection(vol.dropna().index)
@@ -55,11 +55,11 @@ class TestCreateVolumeSmaFeature:
         window = 5
         result = create_volume_sma_feature(sample_ohlcv_df, window_size=window)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             expected = ticker_df["Volume"].rolling(
                 window=window, min_periods=window
             ).mean()
-            sma = result[result["Ticker"] == ticker].sort_index()[f"volume_sma_{window}"]
+            sma = result[result["Ticker"] == ticker].sort_values("Date")[f"volume_sma_{window}"]
             valid = expected.dropna().index.intersection(sma.dropna().index)
             pd.testing.assert_series_equal(
                 sma.loc[valid].reset_index(drop=True),
@@ -87,12 +87,12 @@ class TestCreateRelativeVolumeFeature:
         window = 5
         result = create_relative_volume_feature(sample_ohlcv_df, window_size=window)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             avg_vol = ticker_df["Volume"].rolling(
                 window=window, min_periods=window
             ).mean()
             expected = ticker_df["Volume"] / avg_vol
-            rel = result[result["Ticker"] == ticker].sort_index()[f"relative_volume_{window}"]
+            rel = result[result["Ticker"] == ticker].sort_values("Date")[f"relative_volume_{window}"]
             valid = expected.dropna().index.intersection(rel.dropna().index)
             pd.testing.assert_series_equal(
                 rel.loc[valid].reset_index(drop=True),
@@ -119,10 +119,10 @@ class TestCreateReturnXVolumeFeature:
     def test_return_x_volume_values(self, sample_ohlcv_df):
         result = create_return_x_volume_feature(sample_ohlcv_df)
         for ticker in sample_ohlcv_df["Ticker"].unique():
-            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_index()
+            ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             price_return = ticker_df["Close"].diff()
             expected = ticker_df["Volume"] * price_return
-            col = result[result["Ticker"] == ticker].sort_index()["return_x_volume"]
+            col = result[result["Ticker"] == ticker].sort_values("Date")["return_x_volume"]
             valid = expected.dropna().index.intersection(col.dropna().index)
             pd.testing.assert_series_equal(
                 col.loc[valid].reset_index(drop=True),

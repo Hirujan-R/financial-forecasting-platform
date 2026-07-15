@@ -41,6 +41,7 @@ class TestCreateRsiFeature:
         close = np.arange(100, 130, dtype=float)
         df = pd.DataFrame(
             {
+                "Date": dates,
                 "Ticker": "TEST",
                 "Open": close - 1,
                 "High": close + 1,
@@ -48,9 +49,7 @@ class TestCreateRsiFeature:
                 "Close": close,
                 "Volume": [1_000_000] * len(close),
             },
-            index=dates,
         )
-        df.index.name = "Date"
         result = create_rsi_feature(df, window_size=14)
         late_rsi = result.loc[result["Ticker"] == "TEST", "rsi_14"].dropna()
         assert late_rsi.iloc[-1] > 70
