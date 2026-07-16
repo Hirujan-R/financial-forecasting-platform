@@ -66,11 +66,11 @@ class TestCreateMarketMovementTarget:
 
 class TestCreateCloseLagFeature:
     def test_adds_lag_column(self, sample_ohlcv_df):
-        result = create_close_lag_feature(sample_ohlcv_df, number_of_days=1)
+        result = create_close_lag_feature(sample_ohlcv_df, lag=1)
         assert "close_lag_1" in result.columns
 
     def test_lag_values_are_shifted(self, sample_ohlcv_df):
-        result = create_close_lag_feature(sample_ohlcv_df, number_of_days=1)
+        result = create_close_lag_feature(sample_ohlcv_df, lag=1)
         for ticker in sample_ohlcv_df["Ticker"].unique():
             ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             lag_col = result[result["Ticker"] == ticker].sort_values("Date")["close_lag_1"]
@@ -81,13 +81,13 @@ class TestCreateCloseLagFeature:
             )
 
     def test_first_row_per_ticker_is_nan(self, sample_ohlcv_df):
-        result = create_close_lag_feature(sample_ohlcv_df, number_of_days=1)
+        result = create_close_lag_feature(sample_ohlcv_df, lag=1)
         for ticker in sample_ohlcv_df["Ticker"].unique():
             ticker_result = result[result["Ticker"] == ticker]
             assert np.isnan(ticker_result["close_lag_1"].iloc[0])
 
     def test_custom_lag(self, sample_ohlcv_df):
-        result = create_close_lag_feature(sample_ohlcv_df, number_of_days=5)
+        result = create_close_lag_feature(sample_ohlcv_df, lag=5)
         assert "close_lag_5" in result.columns
         for ticker in sample_ohlcv_df["Ticker"].unique():
             ticker_result = result[result["Ticker"] == ticker]
@@ -95,7 +95,7 @@ class TestCreateCloseLagFeature:
 
     def test_invalid_lag_raises(self, sample_ohlcv_df):
         with pytest.raises(ValueError):
-            create_close_lag_feature(sample_ohlcv_df, number_of_days=0)
+            create_close_lag_feature(sample_ohlcv_df, lag=0)
 
     def test_does_not_modify_original(self, sample_ohlcv_df):
         original = sample_ohlcv_df.copy()

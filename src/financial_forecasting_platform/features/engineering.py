@@ -3,6 +3,8 @@ import numpy as np
 import warnings
 
 def create_market_movement_target(df: pd.DataFrame) -> pd.Series:
+    """Returns 1 if the Close price of next day is greater than Close price of 
+       current day and 0 otherwise. Target variable of the model."""
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
 
@@ -17,21 +19,26 @@ def create_market_movement_target(df: pd.DataFrame) -> pd.Series:
     name="market_movement"
     )
 
-def create_close_lag_feature(df: pd.DataFrame, number_of_days: int = 1) -> pd.DataFrame:
-    if number_of_days < 1:
-        raise ValueError("number_of_days must be a positive integer.")
+def create_close_lag_feature(df: pd.DataFrame, lag: int = 1) -> pd.DataFrame:
+    """Creates the lag close price feature. By default, lag is set to one."""
+    if lag < 1:
+        raise ValueError("lag must be a positive integer.")
         
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
 
-    col_name = f"close_lag_{number_of_days}"
+    col_name = f"close_lag_{lag}"
     return_df[col_name] = return_df.groupby("Ticker")["Close"].shift(
-        number_of_days
+        lag
     )
 
     return return_df
 
 def create_momentum_feature(df: pd.DataFrame, lag: int = 1) -> pd.DataFrame:
+    """Creates momentum feature. Momentum shows speed of price changes / rate of price
+       movement.
+       momentum = close_price_t - close_price_t-lag.
+       By default, lag is set to one."""
     if lag < 1:
         raise ValueError("lag must be a positive integer.")
         
@@ -43,6 +50,11 @@ def create_momentum_feature(df: pd.DataFrame, lag: int = 1) -> pd.DataFrame:
     return return_df
 
 def create_lag_return_feature(df: pd.DataFrame, lag: int = 1) -> pd.DataFrame:
+    """Creates simple return feature.
+       Shows the profit or loss made on an investment over a specific period of time:
+       return = (close_price_t / close_price_t_lag) - 1.
+       return = (close_price_t - close_price_t_lag) / close_price_t_lag.
+       By default, lag is set to one."""
     if lag < 1:
         raise ValueError("lag must be a positive integer.")
 
@@ -55,6 +67,9 @@ def create_lag_return_feature(df: pd.DataFrame, lag: int = 1) -> pd.DataFrame:
     return return_df
 
 def create_log_return_lag_feature(df: pd.DataFrame, lag: int = 1):
+    """Creates log return feature: 
+       log_return = log(close_price_t / close_price_t_lag).
+       By default, lag is set to one."""
     if lag < 1:
         raise ValueError("lag must be a positive integer.")
     return_df = df.copy()
@@ -64,6 +79,9 @@ def create_log_return_lag_feature(df: pd.DataFrame, lag: int = 1):
     return return_df
 
 def create_simple_moving_average_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:
+    """Creates SMA feature. SMA assigns equal weight to all points: 
+       SMA = mean(close_price_t + close_price_t-1 + ... + close_price_t-window_size)
+       By default, window_size is set to two."""
     if window_size < 1:
         raise ValueError("window_size must be a positive integer.")
     if window_size == 1:
@@ -77,6 +95,9 @@ def create_simple_moving_average_feature(df: pd.DataFrame, window_size: int = 2)
     return return_df
 
 def create_distance_from_sma_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:
+    """Creates distance from SMA feature. Shows how far current price is from average: 
+       distance from SMA = (close_t - SMA(close_t,window_size) / SMA(close_t,window_size))
+       By default, window_size is set to two."""
     if window_size < 1:
         raise ValueError("window_size must be a positive integer.")
     if window_size == 1:
@@ -91,6 +112,10 @@ def create_distance_from_sma_feature(df: pd.DataFrame, window_size: int = 2) -> 
     return return_df
 
 def create_ema_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:
+    """Creates EMA feature. EMA assigns exponentially larger weights to more recent points: 
+       Example Multiplier = 2 / (num_periods + 1)
+       EMA_t = (close_t - EMA_t-1) * Multiplier + EMA_t-1
+       By default, window_size is set to two."""
     if window_size < 1:
         raise ValueError("window_size must be a positive integer.")
     if window_size == 1:
@@ -104,6 +129,9 @@ def create_ema_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:
     return return_df
 
 def create_ema_crossover_feature(df: pd.DataFrame, short_span: int, long_span: int) -> pd.DataFrame:
+    """Creates EMA crossover feature. Large EMA crossover shows potential shift 
+       in market momentum and trend: 
+       EMA_crossover_t = EMA(t,short_span) - EMA(t,long_span)"""
     if short_span == long_span:
         raise ValueError("Short span and long span must be different.")
     if short_span < 1 or long_span < 1:
@@ -119,6 +147,8 @@ def create_ema_crossover_feature(df: pd.DataFrame, short_span: int, long_span: i
     return return_df
 
 def create_simple_return_volatility_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:
+    """Creates return volocity feature. Shows speed at which money is returned: 
+       volocity_t = std(daily_return_t, daily_return_t-1, ..., daily_return_t-window_size)"""
     if window_size <= 1:
         raise ValueError("window_size must be an integer greater than 1.")
         
@@ -132,6 +162,8 @@ def create_simple_return_volatility_feature(df: pd.DataFrame, window_size: int =
     return return_df
 
 def create_log_return_volatility_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:
+    """Creates log return volocity feature. Shows speed at which money is returned: 
+       log_volocity_t = std(daily_log_return_t, ..., daily_log_return_t-window_size)"""
     if window_size <= 1:
         raise ValueError("window_size must be an integer greater than 1.")
         
@@ -216,35 +248,58 @@ def create_rsi_feature(df: pd.DataFrame, window_size: int = 14) -> pd.DataFrame:
     return return_df
     
 def create_daily_range_feature(df: pd.DataFrame) -> pd.DataFrame:
+    """Creates daily range feature. Shows difference between High and 
+       Low of an asset on a day: 
+       daily_range = High - Low"""
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
     return_df["daily_range"] = return_df["High"] - return_df["Low"]
     return return_df
 
 def create_range_percentage_feature(df: pd.DataFrame) -> pd.DataFrame:
+    """Creates daily range feature. Shows difference between High and 
+       Low of an asset on a day as a percentage: 
+       daily_range_percentage = (High - Low) / Close"""
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
     return_df["range_percentage"] = (return_df["High"] - return_df["Low"]) / return_df["Close"]
     return return_df
 
 def create_candle_body_feature(df: pd.DataFrame) -> pd.DataFrame:
+    """Creates candle body feature. Shows price range between opening and closing price.
+       If Close > Open -> price went up -> Bullish market.
+       If Close < Open -> price went down -> Bearish market.
+       Tall candle body -> strong buying pressure -> session dominated by buyers or sellers.
+       Short candle body -> indecisive marker -> neither buyers or sellers dominated.
+       candle_body = Close - Open"""
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
     return_df["candle_body"] = return_df["Close"] - return_df["Open"]
     return return_df
 
 def create_body_percentage_feature(df: pd.DataFrame) -> pd.DataFrame:
+    """Creates candle body percentage feature. Shows price range between opening 
+       and closing price as percentage.
+       Percentage shows the change between Close and Open relative to Open's value.
+       If Close > Open -> price went up -> Bullish market.
+       If Close < Open -> price went down -> Bearish market.
+       Tall candle body -> strong buying pressure -> session dominated by buyers or sellers.
+       Short candle body -> indecisive marker -> neither buyers or sellers dominated.
+       candle_body_percentage = (Close - Open) / Open"""
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
     return_df["body_percentage"] = (return_df["Close"] - return_df["Open"]) / return_df["Open"]
     return return_df
 
 def create_upper_shadow_feature(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Creates upper shadow (upper wick) feature.
+    """Creates upper shadow (upper wick) feature. Measures failed attempt of buyers to
+       keep prices elevated. 
+       High upper shadow value -> Long upper shadow -> Aggressive selling pressure to push 
+       price down.
+       Low upper shadow value -> Short upper shadow -> Buyers dominated session as sellers 
+       couldn't push down prices.
 
-    Upper shadow = High - max(Open, Close)
-    """
+       Upper shadow = High - max(Open, Close)"""
 
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
@@ -254,11 +309,14 @@ def create_upper_shadow_feature(df: pd.DataFrame) -> pd.DataFrame:
     return return_df
 
 def create_lower_shadow_feature(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Creates lower shadow (lower wick) feature.
+    """Creates lower shadow (lower wick) feature. Measures failed attempt of sellers to
+       keep prices down. 
+       High lower shadow value -> Long lower shadow -> Aggressive buying pressure to push 
+       price up.
+       Low lower shadow value -> Short lower shadow -> Sellers dominated session as buyers 
+       couldn't push up prices.
 
-    Lower shadow = min(Open, Close) - Low
-    """
+       Lower shadow = min(Open, Close) - Low"""
 
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
@@ -268,11 +326,15 @@ def create_lower_shadow_feature(df: pd.DataFrame) -> pd.DataFrame:
     return return_df
 
 def create_upper_shadow_percentage_feature(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Creates upper shadow (upper wick) percentage feature.
+    """Creates upper shadow percentage (upper wick) feature. 
+       Measures failed attempt of buyers to keep prices elevated. 
+       Percentage ensures value is relative.
+       High upper shadow value -> Long upper shadow -> Aggressive selling pressure to push 
+       price down.
+       Low upper shadow value -> Short upper shadow -> Buyers dominated session as sellers 
+       couldn't push down prices.
 
-    Upper shadow percentage = (High - max(Open, Close)) / Close
-    """
+       upper_shadow_percentage = (High - max(Open, Close)) / Close"""
 
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
@@ -283,11 +345,15 @@ def create_upper_shadow_percentage_feature(df: pd.DataFrame) -> pd.DataFrame:
     return return_df
 
 def create_lower_shadow_percentage_feature(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Creates lower shadow (lower wick) percentage feature.
+    """Creates lower shadow (lower wick) percentage feature. Measures failed attempt 
+       of sellers to keep prices down. 
+       Percentage ensures value is relative.
+       High lower shadow value -> Long lower shadow -> Aggressive buying pressure to push 
+       price up.
+       Low lower shadow value -> Short lower shadow -> Sellers dominated session as buyers 
+       couldn't push up prices.
 
-    Lower shadow percentage = (min(Open, Close) - Low) / Close
-    """
+       lower_shadow_percentage = (min(Open, Close) - Low) / Close"""
 
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
@@ -298,6 +364,12 @@ def create_lower_shadow_percentage_feature(df: pd.DataFrame) -> pd.DataFrame:
     return return_df
 
 def create_volume_pct_change_feature(df: pd.DataFrame, lag: int = 1) -> pd.DataFrame:
+    """Creates volume change percentage feature. Measures change in number of
+       assets traded between period of time. 
+       High volume percentage chage -> More assets traded during the time.
+       Low volume percentage chage -> Less assets traded during the time.
+
+       volume_pct_change = (Volume_t - Volume_t-lag) Volume_t-1"""
     if lag < 1:
         raise ValueError("lag must be an integer greater than 1.")
     return_df = df.copy()
@@ -307,6 +379,9 @@ def create_volume_pct_change_feature(df: pd.DataFrame, lag: int = 1) -> pd.DataF
     return return_df
 
 def create_volume_sma_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:
+    """Creates volume SMA feature. Measures average assets traded between period of time. 
+
+       volume_SMA = mean(Volume_t + Volume_t-1 + ... + Volume_t-window_size)"""
     if window_size < 1:
         raise ValueError("window_size must be an integer greater than 1.")
     if window_size == 1:
@@ -320,7 +395,10 @@ def create_volume_sma_feature(df: pd.DataFrame, window_size: int = 2) -> pd.Data
     return return_df
 
 def create_relative_volume_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:
-    """Relative volume = volume today / Average volume"""
+    """Creates relative volume feature. Measures ratio of assets traded now compared 
+       to average assets over period of time. 
+
+       relative_volume = Volume_t - Volume_SMA_window_size"""
     if window_size < 1:
         raise ValueError("window_size must be an integer greater than 1.")
     if window_size == 1:
@@ -334,7 +412,21 @@ def create_relative_volume_feature(df: pd.DataFrame, window_size: int = 2) -> pd
     return return_df
 
 def create_return_x_volume_feature(df: pd.DataFrame) -> pd.DataFrame:
-    
+    """Creates return_x_volume feature.
+
+       High Volume + Positive Return: Indicates strong, institutional buying pressure. 
+       If a stock's price goes up on significantly higher-than-average volume, 
+       the uptrend is widely considered reliable and likely to continue.
+
+       High Volume + Negative Return: Indicates aggressive selling or panic. 
+       A sharp price drop accompanied by high volume suggests the downtrend is 
+       strong and driven by market conviction.
+       
+       Low Volume + Positive/Negative Return: Suggests the price move lacks conviction 
+       (often driven by retail traders rather than "smart money" institutions). 
+       These trends are typically weak and are highly susceptible to reversals or "traps".
+       
+       return_x_volume = daily_return * Volume"""
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
 
@@ -343,6 +435,12 @@ def create_return_x_volume_feature(df: pd.DataFrame) -> pd.DataFrame:
     return return_df
 
 def create_drawdown_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:
+    """Create drawdown feature.
+       A drawdown is the peak-to-trough decline of an investment.
+       Low drawdown magnitude implies stability.
+       High drawdown magnitude implies volatility and elevated risk.
+       peak = max(Close_t, Close_t-1, ..., Close_t-window_size)
+       drawdown = (Close_t - peak) / peak"""
     if window_size <= 1:
         raise ValueError("window_size must be an integer greater than 1.")
     return_df = df.copy()
@@ -352,6 +450,12 @@ def create_drawdown_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFr
     return return_df
 
 def create_rolling_window_mdd_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:
+    """Create maximum drawdown feature.
+       A maximum drawdown is the largest peak-to-trough decline of an investment.
+       Low MDD drawdown magnitude implies stability.
+       High MDD drawdown magnitude implies volatility and elevated risk.
+       peak = max(Close_t, Close_t-1, ..., Close_t-window_size)
+       max_drawdown = (drawdown - peak) / peak"""
     if window_size <= 1:
         raise ValueError("window_size must be an integer greater than 1.")
     return_df = df.copy()
@@ -362,6 +466,7 @@ def create_rolling_window_mdd_feature(df: pd.DataFrame, window_size: int = 2) ->
     return return_df
 
 def create_date_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Creates date feautes: day of week, month."""
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
     return_df["day_of_week"] = return_df["Date"].transform(lambda x: x.strftime('%A'))
@@ -369,7 +474,14 @@ def create_date_features(df: pd.DataFrame) -> pd.DataFrame:
     return return_df
 
 def create_rolling_sharpe_ratio_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:
-    """"""
+    """Creates rolling sharpe ratio feature.
+       Sharpe ratio measures the performance of an investment compared to a risk-free
+       asset after adjusting for its risk.
+       Indicates how well the return of an asset compensates for the risk taken.
+       When comparing assets, the one with the higher sharpe ratio provides better return 
+       relative to the risk required.
+       
+       rolling_sharpe_ratio = mean_return_window_size / std_return_window_size."""
     if window_size <= 1:
         raise ValueError("window_size must be an integer greater than 1.")
     return_df = df.copy()
