@@ -5,12 +5,20 @@ from financial_forecasting_platform.features.engineering import create_lag_retur
     create_simple_return_volatility_feature, create_log_return_volatility_feature, \
     create_bollinger_bands_features, create_daily_range_feature, create_range_percentage_feature, \
     create_candle_body_feature, create_upper_shadow_feature, create_lower_shadow_feature, \
-    create_upper_shadow_percentage_feature, create_lower_shadow_percentage_feature, \
+    create_body_percentage_feature, create_upper_shadow_percentage_feature, create_lower_shadow_percentage_feature, \
     create_volume_pct_change_feature, create_relative_volume_feature, \
     create_volume_sma_feature, create_return_x_volume_feature, create_drawdown_feature, \
-    create_rolling_sharpe_ratio_feature, create_date_features, create_market_movement_target
+    create_rolling_window_mdd_feature, create_rolling_sharpe_ratio_feature, \
+    create_date_features, create_market_movement_target
 
 def feature_engineering(df: pd.DataFrame):
+    """Generates feature columns given an OHLCV dataset. Following features generated:
+            return, log return, return SMA, return EMA, distance from EMA, RSI, momentum, return volatility,
+            log return volatility, bollinger bands, daily range, daily range percentage, 
+            candle body, candle upper shadow, candle lower shadow,candle body percentage, 
+            candle upper shadow percentage, candle lower shadow percentage, 
+            volume percentage change, relative volume, volume SMA, return x volume, 
+            drawdown, maximum drawdown, rolling sharpe ratio, day of week, month."""
 
     return_df = df.copy()
     return_df.sort_index(inplace=True)
@@ -53,6 +61,7 @@ def feature_engineering(df: pd.DataFrame):
     return_df = create_candle_body_feature(return_df)
     return_df = create_upper_shadow_feature(return_df)
     return_df = create_lower_shadow_feature(return_df)
+    return_df = create_body_percentage_feature(return_df)
     return_df = create_upper_shadow_percentage_feature(return_df)
     return_df = create_lower_shadow_percentage_feature(return_df)
 
@@ -64,6 +73,7 @@ def feature_engineering(df: pd.DataFrame):
 
     # Risk
     return_df = create_drawdown_feature(return_df, window_size=30)
+    return_df = create_rolling_window_mdd_feature(return_df, window_size=30)
     return_df = create_rolling_sharpe_ratio_feature(return_df, window_size=30)
 
     # Date

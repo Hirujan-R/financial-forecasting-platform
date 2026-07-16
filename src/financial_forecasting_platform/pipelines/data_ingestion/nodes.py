@@ -1,12 +1,10 @@
 import pandas as pd
 import yfinance as yf
 
-def download_ohlcv_data(
-    tickers: list[str],
-    start_date: str,
-    end_date: str
-) -> pd.DataFrame:
-
+def download_ohlcv_data(tickers: list[str], start_date: str, end_date: str
+                        ) -> pd.DataFrame:
+    """Downloads OHLCV for a list "tickers" from "start_date" to "end_date" using
+       yfinance api. "Date" and "Ticker" indices are reset to columns."""
     if not tickers:
         raise ValueError("tickers cannot be empty")
 

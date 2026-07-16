@@ -2,7 +2,8 @@ from kedro.pipeline import Pipeline, node
 from .nodes import download_ohlcv_data
 
 def create_pipeline(**kwargs) -> Pipeline:
-
+    """Kedro pipeline that takes tickers, start_date, and end_date inputs and calls
+    the data_ingestion node."""
     return Pipeline(
         [
             node(
