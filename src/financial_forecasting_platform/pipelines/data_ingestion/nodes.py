@@ -37,4 +37,6 @@ def download_ohlcv_data(tickers: list[str], start_date: str, end_date: str
 
     df = df.reset_index()
 
+    df = df.sort_values(["Ticker", "Date"])
+
     return df

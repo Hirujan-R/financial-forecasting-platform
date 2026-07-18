@@ -1,0 +1,39 @@
+required_columns:
+  - Date
+  - Ticker
+  - Open
+  - High
+  - Low
+  - Close
+  - Volume
+
+column_types:
+  - datetime
+  - string
+  - numeric
+  - numeric
+  - numeric
+  - numeric
+  - integer
+
+error_messages:
+  - "Invalid 'Date' column type. 'Date' column should be in DateTime format."
+  - "Invalid 'Ticker' column type. 'Ticker' column must contain string values."
+  - "Invalid 'Open' column type. 'Open' column must contain numeric values."
+  - "Invalid 'High' column type. 'High' column must contain numeric values."
+  - "Invalid 'Low' column type. 'Low' column must contain numeric values."
+  - "Invalid 'Close' column type. 'Close' column must contain numeric values."
+  - "Invalid 'Volume' column type. 'Volume' column must contain integer values."
+
+row_id:
+  - Ticker
+  - Date
+
+ohlcv_columns:
+  - Open
+  - High
+  - Low
+  - Close
+  - Volume
+
+max_gap_days: 10

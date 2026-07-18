@@ -1,4 +1,4 @@
-from kedro.pipeline import Pipeline, node
+from kedro.pipeline import Pipeline, Node
 from .nodes import download_ohlcv_data
 
 def create_pipeline(**kwargs) -> Pipeline:
@@ -6,7 +6,7 @@ def create_pipeline(**kwargs) -> Pipeline:
     the data_ingestion node."""
     return Pipeline(
         [
-            node(
+            Node(
                 func=download_ohlcv_data,
                 inputs=[
                     "params:tickers",

@@ -9,7 +9,7 @@ def create_pipeline(**kwargs):
         [
             node(
                 func=feature_engineering,
-                inputs="cleaned_data",
+                inputs="validated_raw_data",
                 outputs="engineered_data",
                 name="feature_engineering_node",
             )
