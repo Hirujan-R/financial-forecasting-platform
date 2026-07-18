@@ -5,19 +5,69 @@ stages:
     deps:
     - path: conf/base/catalog.yml
       hash: md5
-      md5: 41310a7d7391650645ebd0c697d93528
-      size: 505
-    - path: conf/base/parameters.yml
+      md5: b3c5e6fbe3b60244e26a9362a87ba03e
+      size: 518
+    - path: conf/base/parameters_data_ingestion.yml
       hash: md5
       md5: 33288bb51287783b9bdb989c07dfc03b
       size: 114
     - path: src/financial_forecasting_platform/pipelines/data_ingestion
       hash: md5
-      md5: a71799f83a08457f5a5544085c54e3dd.dir
-      size: 4374
+      md5: 17bb315aa8ca2c5a8725e37694d0a18f.dir
+      size: 5009
       nfiles: 6
     outs:
     - path: data/01_raw/raw_data.parquet
       hash: md5
-      md5: db76b13f01b904c8267e996f5085614e
-      size: 524356
+      md5: f8f0cce8549502a830f5f86f4023e606
+      size: 580598
+  data_validation:
+    cmd: kedro run --pipeline=data_validation
+    deps:
+    - path: conf/base/catalog.yml
+      hash: md5
+      md5: b3c5e6fbe3b60244e26a9362a87ba03e
+      size: 518
+    - path: conf/base/parameters_data_validation.yml
+      hash: md5
+      md5: 2a17a259c2218a2a461e322d67f9f6db
+      size: 858
+    - path: data/01_raw/raw_data.parquet
+      hash: md5
+      md5: f8f0cce8549502a830f5f86f4023e606
+      size: 580598
+    - path: src/financial_forecasting_platform/pipelines/data_validation
+      hash: md5
+      md5: 7a79cc726ea298fb00d44dee78b54465.dir
+      size: 28168
+      nfiles: 6
+    outs:
+    - path: data/02_validated_raw/validated_raw_data.parquet
+      hash: md5
+      md5: 0c7c6fd329b66f3ab9d14dcf5d0fcce1
+      size: 580607
+  feature_engineering:
+    cmd: kedro run --pipeline=feature_engineering
+    deps:
+    - path: conf/base/catalog.yml
+      hash: md5
+      md5: b3c5e6fbe3b60244e26a9362a87ba03e
+      size: 518
+    - path: conf/base/parameters_data_validation.yml
+      hash: md5
+      md5: 2a17a259c2218a2a461e322d67f9f6db
+      size: 858
+    - path: data/02_validated_raw/validated_raw_data.parquet
+      hash: md5
+      md5: 0c7c6fd329b66f3ab9d14dcf5d0fcce1
+      size: 580607
+    - path: src/financial_forecasting_platform/pipelines/feature_engineering
+      hash: md5
+      md5: 2c9b8ee672b0aba5bef48ec1d9ee10cb.dir
+      size: 10377
+      nfiles: 6
+    outs:
+    - path: data/03_feature/engineered_data.parquet
+      hash: md5
+      md5: 172f15134c1ea3be8381867201892a02
+      size: 4528677

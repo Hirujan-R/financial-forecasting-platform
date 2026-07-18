@@ -4,6 +4,9 @@ from financial_forecasting_platform.pipeline_registry import register_pipelines
 from financial_forecasting_platform.pipelines.data_ingestion.pipeline import (
     create_pipeline as create_data_ingestion_pipeline,
 )
+from financial_forecasting_platform.pipelines.data_validation.pipeline import (
+    create_pipeline as create_data_validation_pipeline,
+)
 from financial_forecasting_platform.pipelines.feature_engineering.pipeline import (
     create_pipeline as create_feature_engineering_pipeline,
 )
@@ -17,6 +20,7 @@ class TestRegisterPipelines:
     def test_contains_expected_keys(self):
         result = register_pipelines()
         assert "data_ingestion" in result
+        assert "data_validation" in result
         assert "feature_engineering" in result
         assert "__default__" in result
 
@@ -32,6 +36,13 @@ class TestRegisterPipelines:
             n.name for n in expected.nodes
         ]
 
+    def test_data_validation_pipeline(self):
+        pipelines = register_pipelines()
+        expected = create_data_validation_pipeline()
+        assert [n.name for n in pipelines["data_validation"].nodes] == [
+            n.name for n in expected.nodes
+        ]
+
     def test_feature_engineering_pipeline(self):
         pipelines = register_pipelines()
         expected = create_feature_engineering_pipeline()
@@ -39,21 +50,25 @@ class TestRegisterPipelines:
             n.name for n in expected.nodes
         ]
 
-    def test_default_pipeline_combines_both(self):
+    def test_default_pipeline_combines_all(self):
         pipelines = register_pipelines()
         default = pipelines["__default__"]
         data_ingestion = pipelines["data_ingestion"]
+        data_validation = pipelines["data_validation"]
         feature_engineering = pipelines["feature_engineering"]
 
         default_node_names = {n.name for n in default.nodes}
-        assert default_node_names == {n.name for n in data_ingestion.nodes} | {
-            n.name for n in feature_engineering.nodes
-        }
+        expected_node_names = (
+            {n.name for n in data_ingestion.nodes}
+            | {n.name for n in data_validation.nodes}
+            | {n.name for n in feature_engineering.nodes}
+        )
+        assert default_node_names == expected_node_names
 
-    def test_default_pipeline_has_two_nodes(self):
+    def test_default_pipeline_has_ten_nodes(self):
         pipelines = register_pipelines()
-        assert len(pipelines["__default__"].nodes) == 2
+        assert len(pipelines["__default__"].nodes) == 10
 
     def test_total_pipeline_count(self):
         pipelines = register_pipelines()
-        assert len(pipelines) == 3
+        assert len(pipelines) == 4

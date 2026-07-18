@@ -4,6 +4,24 @@ stages:
     deps:
       - src/financial_forecasting_platform/pipelines/data_ingestion
       - conf/base/catalog.yml
-      - conf/base/parameters.yml
+      - conf/base/parameters_data_ingestion.yml
     outs:
       - data/01_raw/raw_data.parquet
+  data_validation:
+    cmd: kedro run --pipeline=data_validation
+    deps:
+      - src/financial_forecasting_platform/pipelines/data_validation
+      - data/01_raw/raw_data.parquet
+      - conf/base/catalog.yml
+      - conf/base/parameters_data_validation.yml
+    outs:
+      - data/02_validated_raw/validated_raw_data.parquet
+  feature_engineering:
+    cmd: kedro run --pipeline=feature_engineering
+    deps:
+      - src/financial_forecasting_platform/pipelines/feature_engineering
+      - data/02_validated_raw/validated_raw_data.parquet
+      - conf/base/catalog.yml
+      - conf/base/parameters_data_validation.yml
+    outs:
+      - data/03_feature/engineered_data.parquet

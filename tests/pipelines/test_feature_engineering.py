@@ -160,7 +160,7 @@ class TestFeatureEngineeringPipeline:
         input_datasets = set()
         for n in pipeline.nodes:
             input_datasets.update(n.inputs)
-        assert "cleaned_data" in input_datasets
+        assert "validated_raw_data" in input_datasets
 
     def test_pipeline_outputs_engineered_data(self):
         pipeline = create_pipeline()
