@@ -3,8 +3,10 @@ jupyterlab>=3.0
 notebook
 kedro~=1.4.0
 kedro-datasets[pandas]
+kedro-viz
 yfinance
 matplotlib
 seaborn
 pandas
 dvc[s3]
+scikit-learn

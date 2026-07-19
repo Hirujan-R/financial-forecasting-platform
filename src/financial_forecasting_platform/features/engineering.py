@@ -106,9 +106,26 @@ def create_distance_from_sma_feature(df: pd.DataFrame, window_size: int = 2) -> 
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
 
-    column_name = f"close_vs_SMA_{window_size}"
+    column_name = f"distance_close_vs_SMA_{window_size}"
     sma = return_df.groupby("Ticker")["Close"].transform(lambda x: x.rolling(window=window_size, min_periods=window_size).mean()).replace(0, np.nan)
     return_df[column_name] = (return_df["Close"] - sma) / sma
+    return return_df
+
+def create_log_distance_from_sma_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:
+    """Creates log distance from SMA feature. Shows how far current price is from average: 
+       distance from SMA = log(close_t - SMA(close_t,window_size) / SMA(close_t,window_size))
+       By default, window_size is set to two."""
+    if window_size < 1:
+        raise ValueError("window_size must be a positive integer.")
+    if window_size == 1:
+        warnings.warn("Setting window_size = 1 is redundant. Use a value larger than 1.")
+    
+    return_df = df.copy()
+    return_df.sort_values("Date", inplace=True)
+
+    column_name = f"log_distance_close_vs_SMA_{window_size}"
+    sma = return_df.groupby("Ticker")["Close"].transform(lambda x: x.rolling(window=window_size, min_periods=window_size).mean()).replace(0, np.nan)
+    return_df[column_name] = np.log(return_df["Close"] / sma)
     return return_df
 
 def create_ema_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:
@@ -375,7 +392,7 @@ def create_volume_pct_change_feature(df: pd.DataFrame, lag: int = 1) -> pd.DataF
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
     lag_volume = return_df.groupby("Ticker")["Volume"].shift(lag)
-    return_df["volume_pct_change"] = (return_df["Volume"] - lag_volume) / lag_volume
+    return_df[f"volume_pct_change_{lag}"] = (return_df["Volume"] - lag_volume) / lag_volume
     return return_df
 
 def create_volume_sma_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:

@@ -24,4 +24,6 @@ stages:
       - conf/base/catalog.yml
       - conf/base/parameters_data_validation.yml
     outs:
-      - data/03_feature/engineered_data.parquet
+      - data/03_feature/lr_features.parquet
+      - data/03_feature/xgboost_features.parquet
+      - data/03_feature/mlp_features.parquet
