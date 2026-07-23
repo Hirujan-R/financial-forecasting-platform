@@ -65,9 +65,9 @@ class TestRegisterPipelines:
         )
         assert default_node_names == expected_node_names
 
-    def test_default_pipeline_has_ten_nodes(self):
+    def test_default_pipeline_has_thirteen_nodes(self):
         pipelines = register_pipelines()
-        assert len(pipelines["__default__"].nodes) == 10
+        assert len(pipelines["__default__"].nodes) == 13
 
     def test_total_pipeline_count(self):
         pipelines = register_pipelines()

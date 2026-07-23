@@ -1,0 +1,411 @@
+create_all_features_config:
+
+  # Log return
+  - function: create_log_return_lag_feature
+    kwargs:
+      lag: 1
+  - function: create_log_return_lag_feature
+    kwargs:
+      lag: 2
+  - function: create_log_return_lag_feature
+    kwargs:
+      lag: 3
+  - function: create_log_return_lag_feature
+    kwargs:
+      lag: 5
+  - function: create_log_return_lag_feature
+    kwargs:
+      lag: 10
+  - function: create_log_return_lag_feature
+    kwargs:
+      lag: 20
+
+  # Trend positioning
+  - function: create_log_distance_from_sma_feature
+    kwargs:
+      window_size: 5
+  - function: create_log_distance_from_sma_feature
+    kwargs:
+      window_size: 10
+  - function: create_log_distance_from_sma_feature
+    kwargs:
+      window_size: 20
+  - function: create_log_distance_from_sma_feature
+    kwargs:
+      window_size: 50
+
+  # Crossover
+  - function: create_ema_crossover_feature
+    kwargs:
+      short_span: 5
+      long_span: 20
+  - function: create_ema_crossover_feature
+    kwargs:
+      short_span: 12
+      long_span: 26
+
+  # Volatility
+  - function: create_log_return_volatility_feature
+    kwargs:
+      window_size: 5
+  - function: create_log_return_volatility_feature
+    kwargs:
+      window_size: 10
+  - function: create_log_return_volatility_feature
+    kwargs:
+      window_size: 20
+
+  # Volatility regime
+  - function: create_bollinger_bands_features
+    kwargs:
+      window_size: 10
+  - function: create_bollinger_bands_features
+    kwargs:
+      window_size: 20
+  - function: create_rsi_feature
+    kwargs:
+      window_size: 7
+  - function: create_rsi_feature
+    kwargs:
+      window_size: 14
+  - function: create_rsi_feature
+    kwargs:
+      window_size: 21
+    
+  # Garman-Klass Volatility
+  - function: create_garman_klass_variance
+    kwargs:
+      lag: 1
+  - function: create_garman_klass_variance
+    kwargs:
+      lag: 5
+  - function: create_gk_variance_rolling_mean
+    kwargs:
+      window_size: 5
+      lag: 1
+  - function: create_gk_variance_rolling_mean
+    kwargs:
+      window_size: 20
+      lag: 1
+
+  # Parkinson Volatility
+  - function: create_parkinson_variance
+    kwargs:
+      lag: 1
+  - function: create_parkinson_variance
+    kwargs:
+      lag: 5
+  - function: create_parkinson_variance_rolling_mean
+    kwargs:
+      window_size: 20
+      lag: 1
+  - function: create_parkinson_volatility
+    kwargs:
+      window_size: 5
+      lag: 1
+  - function: create_parkinson_volatility
+    kwargs:
+      window_size: 20
+      lag: 1
+
+
+  # Rogers-Satchell Volatility
+  - function: create_rogers_satchell_variance
+    kwargs:
+      lag: 1
+  - function: create_rogers_satchell_variance
+    kwargs:
+      lag: 5
+  - function: create_rogers_satchell_variance_rolling_mean
+    kwargs:
+      window_size: 20
+      lag: 1
+  - function: create_rogers_satchell_volatility
+    kwargs:
+      window_size: 5
+      lag: 1
+  - function: create_rogers_satchell_volatility
+    kwargs:
+      window_size: 20
+      lag: 1
+
+  # Yang-Zhang Volatility
+  - function: create_yang_zhang_variance
+    kwargs:
+      lag: 1
+  - function: create_yang_zhang_variance_rolling_mean
+    kwargs:
+      lag: 1
+      window_size: 5
+  - function: create_yang_zhang_variance_rolling_mean
+    kwargs:
+      lag: 1
+      window_size: 20
+  - function: create_yang_zhang_volatility
+    kwargs:
+      lag: 1
+      window_size: 5
+  - function: create_yang_zhang_volatility
+    kwargs:
+      lag: 1
+      window_size: 20
+  - function: create_yang_zhang_volatility
+    kwargs:
+      lag: 1
+      window_size: 60
+
+  # Volatility Ratios
+  - function: create_yang_zhang_volatility_ratio_feature
+    kwargs:
+      short_span: 5
+      long_span: 20
+
+  - function: create_yang_zhang_volatility_ratio_feature
+    kwargs:
+      short_span: 12
+      long_span: 26
+  - function: create_yang_zhang_volatility_ratio_feature
+    kwargs:
+      short_span: 20
+      long_span: 60
+
+  # Candle Structure
+  - function: create_daily_range_feature
+    kwargs: {}
+  - function: create_range_percentage_feature
+    kwargs: {}
+  - function: create_candle_body_feature
+    kwargs: {}
+  - function: create_upper_shadow_feature
+    kwargs: {}
+  - function: create_lower_shadow_feature
+    kwargs: {}
+  - function: create_body_percentage_feature
+    kwargs: {}
+  - function: create_upper_shadow_percentage_feature
+    kwargs: {}
+  - function: create_lower_shadow_percentage_feature
+    kwargs: {}
+
+  # Volume
+  - function: create_volume_pct_change_feature
+    kwargs:
+      lag: 1
+  - function: create_relative_volume_feature
+    kwargs:
+      window_size: 5
+  - function: create_relative_volume_feature
+    kwargs:
+      window_size: 20
+  - function: create_volume_sma_feature
+    kwargs:
+      window_size: 20
+  - function: create_return_x_volume_feature
+    kwargs: {}
+    
+  # Risk
+  - function: create_drawdown_feature
+    kwargs:
+      window_size: 10
+  - function: create_drawdown_feature
+    kwargs:
+      window_size: 20
+  - function: create_drawdown_feature
+    kwargs:
+      window_size: 50
+  - function: create_rolling_window_mdd_feature
+    kwargs:
+      window_size: 10
+  - function: create_rolling_window_mdd_feature
+    kwargs:
+      window_size: 20
+  - function: create_rolling_window_mdd_feature
+    kwargs:
+      window_size: 50
+  - function: create_rolling_sharpe_ratio_feature
+    kwargs:
+      window_size: 10
+  - function: create_rolling_sharpe_ratio_feature
+    kwargs:
+      window_size: 20
+  
+  # Momentum
+  - function: create_momentum_feature
+    kwargs:
+      lag: 1
+  - function: create_momentum_feature
+    kwargs:
+      lag: 10
+
+  # Date
+  - function: create_date_features
+    kwargs: {}
+
+  # Target Variable
+  - function: create_market_movement_target
+    kwargs: {}
+
+columns_to_drop:
+  - Open
+  - High
+  - Low
+  - Close
+  - Volume
+
+date_column: Date
+
+lr_features:
+  - Ticker
+  - log_return_lag_1 
+  - log_return_lag_5
+  - log_return_lag_10
+  - log_return_lag_20 
+  - log_distance_close_vs_SMA_5
+  - log_distance_close_vs_SMA_10 
+  - log_distance_close_vs_SMA_20
+  - log_return_volatility_5 
+  - log_return_volatility_10
+  - log_return_volatility_20 
+  - bollinger_upper_distance_20
+  - bollinger_lower_distance_20 
+  - bollinger_bandwidth_20
+  - rsi_14 
+  - range_percentage 
+  - body_percentage
+  - upper_shadow_pct 
+  - lower_shadow_pct 
+  - volume_pct_change_1
+  - relative_volume_5 
+  - relative_volume_20 
+  - drawdown_20
+  - sharpe_20
+  - gk_variance_mean_5_lag_1
+  - gk_variance_mean_20_lag_1
+  - parkinson_volatility_5_lag_1
+  - parkinson_volatility_20_lag_1
+  - rs_volatility_5_lag_1
+  - rs_volatility_20_lag_1
+  - yz_volatility_5_lag_1
+  - yz_volatility_20_lag_1
+  - yz_volatility_60_lag_1
+  - yz_volatility_ratio_5_20
+  - yz_volatility_ratio_20_60
+  - day_of_week 
+  - month
+  - market_movement
+  
+
+xgboost_features:
+  - Ticker
+  - log_return_lag_1
+  - log_return_lag_2
+  - log_return_lag_3
+  - log_return_lag_5
+  - log_return_lag_10
+  - log_return_lag_20
+  - log_distance_close_vs_SMA_5
+  - log_distance_close_vs_SMA_10
+  - log_distance_close_vs_SMA_20
+  - log_distance_close_vs_SMA_50
+  - ema5_minus_ema20
+  - ema12_minus_ema26
+  - log_return_volatility_5 
+  - log_return_volatility_10
+  - log_return_volatility_20 
+  - bollinger_upper_distance_10
+  - bollinger_lower_distance_10 
+  - bollinger_bandwidth_10
+  - bollinger_upper_distance_20
+  - bollinger_lower_distance_20 
+  - bollinger_bandwidth_20
+  - rsi_7
+  - rsi_14
+  - rsi_21
+  - daily_range
+  - range_percentage
+  - candle_body
+  - upper_shadow
+  - lower_shadow
+  - body_percentage
+  - upper_shadow_pct 
+  - lower_shadow_pct 
+  - volume_pct_change_1
+  - relative_volume_5 
+  - relative_volume_20
+  - volume_sma_20
+  - return_x_volume
+  - drawdown_10
+  - drawdown_20
+  - drawdown_50
+  - rolling_window_mdd_10
+  - rolling_window_mdd_20
+  - rolling_window_mdd_50
+  - sharpe_10
+  - sharpe_20
+  - momentum_1
+  - momentum_10
+  - gk_variance_lag_1
+  - gk_variance_lag_5
+  - parkinson_variance_lag_1
+  - parkinson_variance_lag_5
+  - rogers_satchell_variance_lag_1
+  - rogers_satchell_variance_lag_5
+  - gk_variance_mean_5_lag_1
+  - gk_variance_mean_20_lag_1
+  - parkinson_volatility_5_lag_1
+  - parkinson_volatility_20_lag_1
+  - rs_volatility_5_lag_1
+  - rs_volatility_20_lag_1
+  - yz_variance_lag_1
+  - yz_volatility_5_lag_1
+  - yz_volatility_20_lag_1
+  - yz_volatility_60_lag_1
+  - yz_volatility_ratio_5_20
+  - yz_volatility_ratio_12_26
+  - yz_volatility_ratio_20_60
+  - day_of_week
+  - month
+  - market_movement
+
+
+mlp_features:
+  - Ticker
+  - log_return_lag_1 
+  - log_return_lag_3
+  - log_return_lag_5
+  - log_return_lag_10
+  - log_return_lag_20 
+  - log_distance_close_vs_SMA_5
+  - log_distance_close_vs_SMA_10 
+  - log_distance_close_vs_SMA_20
+  - log_return_volatility_5 
+  - log_return_volatility_10
+  - log_return_volatility_20 
+  - bollinger_upper_distance_20
+  - bollinger_lower_distance_20 
+  - bollinger_bandwidth_20
+  - rsi_7
+  - rsi_14 
+  - range_percentage 
+  - body_percentage
+  - upper_shadow_pct 
+  - lower_shadow_pct 
+  - volume_pct_change_1
+  - relative_volume_5 
+  - relative_volume_20 
+  - drawdown_20
+  - rolling_window_mdd_20
+  - sharpe_20 
+  - yz_volatility_5_lag_1
+  - yz_volatility_20_lag_1
+  - yz_volatility_60_lag_1
+  - parkinson_volatility_5_lag_1
+  - rs_volatility_5_lag_1
+  - yz_volatility_ratio_5_20
+  - yz_volatility_ratio_20_60
+  - gk_variance_mean_20_lag_1
+  - parkinson_variance_mean_20_lag_1
+  - rs_variance_mean_20_lag_1
+  - day_of_week 
+  - month
+  - market_movement

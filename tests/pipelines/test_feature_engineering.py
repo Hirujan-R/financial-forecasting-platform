@@ -4,8 +4,11 @@ import pytest
 from kedro.pipeline import Pipeline
 
 from financial_forecasting_platform.pipelines.feature_engineering.nodes import (
-    feature_engineering,
-    target_variable_engineering,
+    create_all_features,
+    lr_feature_engineering,
+    xgboost_feature_engineering,
+    mlp_feature_engineering,
+    FEATURE_FUNCTION_REGISTRY,
 )
 from financial_forecasting_platform.pipelines.feature_engineering.pipeline import (
     create_pipeline,
@@ -38,111 +41,128 @@ def ohlcv_df():
     return df
 
 
-class TestFeatureEngineering:
-    def test_returns_dataframe(self, ohlcv_df):
-        result = feature_engineering(ohlcv_df)
+@pytest.fixture
+def feature_config():
+    return [
+        {"function": "create_lag_return_feature", "kwargs": {"lag": 1}},
+        {"function": "create_simple_moving_average_feature", "kwargs": {"window_size": 20}},
+        {"function": "create_date_features", "kwargs": {}},
+        {"function": "create_market_movement_target", "kwargs": {"forward_window": 5, "lookback_window": 20}},
+    ]
+
+
+class TestCreateAllFeatures:
+    def test_returns_dataframe(self, ohlcv_df, feature_config):
+        result = create_all_features(ohlcv_df, feature_config)
         assert isinstance(result, pd.DataFrame)
 
-    def test_preserves_row_count(self, ohlcv_df):
-        result = feature_engineering(ohlcv_df)
+    def test_preserves_row_count(self, ohlcv_df, feature_config):
+        result = create_all_features(ohlcv_df, feature_config)
         assert len(result) == len(ohlcv_df)
 
-    def test_preserves_tickers(self, ohlcv_df):
-        result = feature_engineering(ohlcv_df)
-        assert set(result["Ticker"].unique()) == {"AAPL", "MSFT"}
+    def test_does_not_modify_original(self, ohlcv_df, feature_config):
+        original = ohlcv_df.copy()
+        create_all_features(ohlcv_df, feature_config)
+        pd.testing.assert_frame_equal(ohlcv_df, original)
+
+    def test_drops_ohlcv_columns_by_default(self, ohlcv_df, feature_config):
+        result = create_all_features(ohlcv_df, feature_config)
+        for col in ["Open", "High", "Low", "Close", "Volume"]:
+            assert col not in result.columns
+
+    def test_sets_date_as_index(self, ohlcv_df, feature_config):
+        result = create_all_features(ohlcv_df, feature_config)
+        assert result.index.name == "Date"
+
+    def test_invalid_function_name_raises(self, ohlcv_df):
+        bad_config = [{"function": "nonexistent_function", "kwargs": {}}]
+        with pytest.raises(ValueError, match="not registered"):
+            create_all_features(ohlcv_df, bad_config)
+
+    def test_creates_configured_features(self, ohlcv_df, feature_config):
+        result = create_all_features(ohlcv_df, feature_config)
+        assert "return_lag_1" in result.columns
+        assert "SMA_20" in result.columns
+        assert "day_of_week" in result.columns
+        assert "market_movement" in result.columns
+
+    def test_custom_columns_to_drop(self, ohlcv_df, feature_config):
+        result = create_all_features(ohlcv_df, feature_config, columns_to_drop=["Open", "Close"])
+        assert "Open" not in result.columns
+        assert "Close" not in result.columns
+        assert "High" in result.columns
+
+
+class TestFeatureFunctionRegistry:
+    def test_registry_is_not_empty(self):
+        assert len(FEATURE_FUNCTION_REGISTRY) > 0
+
+    def test_registry_contains_expected_functions(self):
+        assert "create_lag_return_feature" in FEATURE_FUNCTION_REGISTRY
+        assert "create_simple_moving_average_feature" in FEATURE_FUNCTION_REGISTRY
+        assert "create_market_movement_target" in FEATURE_FUNCTION_REGISTRY
+        assert "create_rsi_feature" in FEATURE_FUNCTION_REGISTRY
+
+    def test_registry_excludes_create_all_features(self):
+        assert "create_all_features" not in FEATURE_FUNCTION_REGISTRY
+
+
+class TestLrFeatureEngineering:
+    def test_returns_dataframe(self, ohlcv_df):
+        custom = ["Ticker", "Close", "Volume"]
+        result = lr_feature_engineering(ohlcv_df, features=custom)
+        assert isinstance(result, pd.DataFrame)
+
+    def test_selects_specified_columns(self, ohlcv_df):
+        custom = ["Ticker", "Close", "Volume", "Open"]
+        result = lr_feature_engineering(ohlcv_df, features=custom)
+        assert list(result.columns) == custom
+
+    def test_preserves_row_count(self, ohlcv_df):
+        custom = ["Ticker", "Close"]
+        result = lr_feature_engineering(ohlcv_df, features=custom)
+        assert len(result) == len(ohlcv_df)
 
     def test_does_not_modify_original(self, ohlcv_df):
         original = ohlcv_df.copy()
-        feature_engineering(ohlcv_df)
+        lr_feature_engineering(ohlcv_df, features=["Ticker", "Close"])
         pd.testing.assert_frame_equal(ohlcv_df, original)
 
-    def test_has_return_features(self, ohlcv_df):
-        result = feature_engineering(ohlcv_df)
-        for lag in [1, 5, 10, 20]:
-            assert f"return_lag_{lag}" in result.columns
-        assert "log_return_lag_1" in result.columns
-
-    def test_has_trend_features(self, ohlcv_df):
-        result = feature_engineering(ohlcv_df)
-        assert "SMA_5" in result.columns
-        assert "SMA_20" in result.columns
-        assert "SMA_50" in result.columns
-        assert "ema_12" in result.columns
-        assert "ema_26" in result.columns
-        assert "close_vs_SMA_20" in result.columns
-
-    def test_has_momentum_features(self, ohlcv_df):
-        result = feature_engineering(ohlcv_df)
-        assert "rsi_14" in result.columns
-        assert "momentum_5" in result.columns
-        assert "momentum_20" in result.columns
-        assert "momentum_60" in result.columns
-
-    def test_has_volatility_features(self, ohlcv_df):
-        result = feature_engineering(ohlcv_df)
-        for w in [5, 20, 60]:
-            assert f"simple_return_volatility_{w}" in result.columns
-            assert f"log_return_volatility_{w}" in result.columns
-        assert "bollinger_upper_distance_30" in result.columns
-        assert "bollinger_lower_distance_30" in result.columns
-        assert "bollinger_bandwidth_30" in result.columns
-
-    def test_has_price_action_features(self, ohlcv_df):
-        result = feature_engineering(ohlcv_df)
-        assert "daily_range" in result.columns
-        assert "range_percentage" in result.columns
-        assert "candle_body" in result.columns
-        assert "body_percentage" in result.columns
-        assert "upper_shadow" in result.columns
-        assert "lower_shadow" in result.columns
-        assert "upper_shadow_pct" in result.columns
-        assert "lower_shadow_pct" in result.columns
-
-    def test_has_volume_features(self, ohlcv_df):
-        result = feature_engineering(ohlcv_df)
-        assert "volume_pct_change" in result.columns
-        assert "relative_volume_30" in result.columns
-        assert "volume_sma_20" in result.columns
-        assert "return_x_volume" in result.columns
-
-    def test_has_risk_features(self, ohlcv_df):
-        result = feature_engineering(ohlcv_df)
-        assert "drawdown_30" in result.columns
-        assert "rolling_window_mdd_30" in result.columns
-        assert "sharpe_30" in result.columns
-
-    def test_has_date_features(self, ohlcv_df):
-        result = feature_engineering(ohlcv_df)
-        assert "day_of_week" in result.columns
-        assert "month" in result.columns
-
-    def test_has_original_ohlcv_columns(self, ohlcv_df):
-        result = feature_engineering(ohlcv_df)
-        for col in ["Date", "Ticker", "Open", "High", "Low", "Close", "Volume"]:
-            assert col in result.columns
-
-    def test_total_expected_column_count(self, ohlcv_df):
-        result = feature_engineering(ohlcv_df)
-        assert result.shape[1] >= 45
+    def test_missing_column_raises(self, ohlcv_df):
+        with pytest.raises(KeyError):
+            lr_feature_engineering(ohlcv_df, features=["Ticker", "nonexistent_col"])
 
 
-class TestTargetVariableEngineering:
-    def test_returns_series(self, ohlcv_df):
-        result = target_variable_engineering(ohlcv_df)
-        assert isinstance(result, pd.Series)
+class TestXgboostFeatureEngineering:
+    def test_returns_dataframe(self, ohlcv_df):
+        custom = ["Ticker", "Close", "Volume"]
+        result = xgboost_feature_engineering(ohlcv_df, features=custom)
+        assert isinstance(result, pd.DataFrame)
 
-    def test_length_matches_input(self, ohlcv_df):
-        result = target_variable_engineering(ohlcv_df)
-        assert len(result) == len(ohlcv_df)
+    def test_selects_specified_columns(self, ohlcv_df):
+        custom = ["Ticker", "Close", "Volume", "Open"]
+        result = xgboost_feature_engineering(ohlcv_df, features=custom)
+        assert list(result.columns) == custom
 
-    def test_values_are_binary_or_nan(self, ohlcv_df):
-        result = target_variable_engineering(ohlcv_df)
-        non_nan = result.dropna()
-        assert set(non_nan.unique()).issubset({0.0, 1.0})
+    def test_missing_column_raises(self, ohlcv_df):
+        with pytest.raises(KeyError):
+            xgboost_feature_engineering(ohlcv_df, features=["Ticker", "nonexistent"])
 
-    def test_series_name(self, ohlcv_df):
-        result = target_variable_engineering(ohlcv_df)
-        assert result.name == "market_movement"
+
+class TestMlpFeatureEngineering:
+    def test_returns_dataframe(self, ohlcv_df):
+        custom = ["Ticker", "Close", "Volume"]
+        result = mlp_feature_engineering(ohlcv_df, features=custom)
+        assert isinstance(result, pd.DataFrame)
+
+    def test_selects_specified_columns(self, ohlcv_df):
+        custom = ["Ticker", "Close", "Volume"]
+        result = mlp_feature_engineering(ohlcv_df, features=custom)
+        assert list(result.columns) == custom
+
+    def test_missing_column_raises(self, ohlcv_df):
+        with pytest.raises(KeyError):
+            mlp_feature_engineering(ohlcv_df, features=["Ticker", "nonexistent"])
 
 
 class TestFeatureEngineeringPipeline:
@@ -150,25 +170,34 @@ class TestFeatureEngineeringPipeline:
         result = create_pipeline()
         assert isinstance(result, Pipeline)
 
-    def test_pipeline_node_name(self):
+    def test_pipeline_has_four_nodes(self):
         pipeline = create_pipeline()
-        node_names = [n.name for n in pipeline.nodes]
-        assert "feature_engineering_node" in node_names
+        assert len(pipeline.nodes) == 4
 
-    def test_pipeline_inputs_cleaned_data(self):
+    def test_pipeline_node_names(self):
+        pipeline = create_pipeline()
+        node_names = {n.name for n in pipeline.nodes}
+        expected_names = {
+            "create_all_features_node",
+            "lr_feature_engineering_node",
+            "xgboost_feature_engineering_node",
+            "mlp_feature_engineering_node",
+        }
+        assert node_names == expected_names
+
+    def test_pipeline_inputs_validated_raw_data(self):
         pipeline = create_pipeline()
         input_datasets = set()
         for n in pipeline.nodes:
             input_datasets.update(n.inputs)
         assert "validated_raw_data" in input_datasets
 
-    def test_pipeline_outputs_engineered_data(self):
+    def test_pipeline_outputs(self):
         pipeline = create_pipeline()
         output_datasets = set()
         for n in pipeline.nodes:
             output_datasets.update(n.outputs)
-        assert "engineered_data" in output_datasets
-
-    def test_pipeline_has_one_node(self):
-        pipeline = create_pipeline()
-        assert len(pipeline.nodes) == 1
+        assert "all_features" in output_datasets
+        assert "lr_features" in output_datasets
+        assert "xgboost_features" in output_datasets
+        assert "mlp_features" in output_datasets

@@ -22,7 +22,8 @@ def download_ohlcv_data(tickers: list[str], start_date: str, end_date: str
         tickers,
         group_by="Ticker",
         start=start_date,
-        end=end_date
+        end=end_date,
+        repair=True
     )
 
     if df.empty:

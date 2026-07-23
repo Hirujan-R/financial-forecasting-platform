@@ -10,3 +10,4 @@ seaborn
 pandas
 dvc[s3]
 scikit-learn
+xgboost

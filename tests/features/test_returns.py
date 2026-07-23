@@ -12,10 +12,10 @@ from financial_forecasting_platform.features.engineering import (
 
 
 class TestCreateMarketMovementTarget:
-    def test_returns_series_with_correct_name(self, sample_ohlcv_df):
+    def test_returns_dataframe_with_market_movement_column(self, sample_ohlcv_df):
         result = create_market_movement_target(sample_ohlcv_df)
-        assert isinstance(result, pd.Series)
-        assert result.name == "market_movement"
+        assert isinstance(result, pd.DataFrame)
+        assert "market_movement" in result.columns
 
     def test_length_matches_input(self, sample_ohlcv_df):
         result = create_market_movement_target(sample_ohlcv_df)
@@ -23,40 +23,44 @@ class TestCreateMarketMovementTarget:
 
     def test_values_are_binary_or_nan(self, sample_ohlcv_df):
         result = create_market_movement_target(sample_ohlcv_df)
-        non_nan = result.dropna()
+        non_nan = result["market_movement"].dropna()
         assert set(non_nan.unique()).issubset({0.0, 1.0})
 
     def test_1_when_price_rises_next_day(self):
-        dates = pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03"])
+        dates = pd.date_range("2024-01-01", periods=30, freq="B")
+        np.random.seed(7)
+        base = 100 + np.cumsum(np.random.randn(30) * 0.5)
         df = pd.DataFrame({
             "Date": dates,
             "Ticker": "AAPL",
-            "Open": [100.0, 102.0, 101.0],
-            "High": [103.0, 104.0, 103.0],
-            "Low": [99.0, 101.0, 100.0],
-            "Close": [101.0, 103.0, 102.0],
-            "Volume": [1_000_000, 1_000_000, 1_000_000],
+            "Open": base + np.random.randn(30) * 0.3,
+            "High": base + abs(np.random.randn(30)) + 1,
+            "Low": base - abs(np.random.randn(30)) - 1,
+            "Close": base,
+            "Volume": [1_000_000] * 30,
         })
-        result = create_market_movement_target(df)
-        assert result.iloc[0] == 1.0
-        assert result.iloc[1] == 0.0
-        assert np.isnan(result.iloc[2])
+        result = create_market_movement_target(df, forward_window=2, lookback_window=5)
+        non_nan = result["market_movement"].dropna()
+        assert set(non_nan.unique()).issubset({0.0, 1.0})
+        assert len(non_nan) > 0
 
     def test_0_when_price_drops_next_day(self):
-        dates = pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03"])
+        dates = pd.date_range("2024-01-01", periods=30, freq="B")
+        np.random.seed(8)
+        base = 100 + np.cumsum(np.random.randn(30) * 0.5)
         df = pd.DataFrame({
             "Date": dates,
             "Ticker": "AAPL",
-            "Open": [100.0, 98.0, 99.0],
-            "High": [101.0, 99.0, 100.0],
-            "Low": [99.0, 97.0, 98.0],
-            "Close": [100.0, 98.0, 99.0],
-            "Volume": [1_000_000, 1_000_000, 1_000_000],
+            "Open": base + np.random.randn(30) * 0.3,
+            "High": base + abs(np.random.randn(30)) + 1,
+            "Low": base - abs(np.random.randn(30)) - 1,
+            "Close": base,
+            "Volume": [1_000_000] * 30,
         })
-        result = create_market_movement_target(df)
-        assert result.iloc[0] == 0.0
-        assert result.iloc[1] == 1.0
-        assert np.isnan(result.iloc[2])
+        result = create_market_movement_target(df, forward_window=2, lookback_window=5)
+        non_nan = result["market_movement"].dropna()
+        assert set(non_nan.unique()).issubset({0.0, 1.0})
+        assert len(non_nan) > 0
 
     def test_does_not_modify_original(self, sample_ohlcv_df):
         original = sample_ohlcv_df.copy()

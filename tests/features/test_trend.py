@@ -58,7 +58,7 @@ class TestCreateSimpleMovingAverageFeature:
 class TestCreateDistanceFromSmaFeature:
     def test_adds_distance_column(self, sample_ohlcv_df):
         result = create_distance_from_sma_feature(sample_ohlcv_df, window_size=5)
-        assert "close_vs_SMA_5" in result.columns
+        assert "distance_close_vs_SMA_5" in result.columns
 
     def test_distance_values(self, sample_ohlcv_df):
         window = 5
@@ -67,7 +67,7 @@ class TestCreateDistanceFromSmaFeature:
             ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
             sma = ticker_df["Close"].rolling(window=window, min_periods=window).mean()
             expected = (ticker_df["Close"] - sma) / sma
-            dist = result[result["Ticker"] == ticker].sort_values("Date")[f"close_vs_SMA_{window}"]
+            dist = result[result["Ticker"] == ticker].sort_values("Date")[f"distance_close_vs_SMA_{window}"]
             valid = expected.dropna().index.intersection(dist.dropna().index)
             pd.testing.assert_series_equal(
                 dist.loc[valid].reset_index(drop=True),

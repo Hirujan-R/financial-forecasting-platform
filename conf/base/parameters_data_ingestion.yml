@@ -4,7 +4,7 @@ tickers:
   - MSFT
   - NVDA
 
-raw_data_start_date: "2015-01-01"
+raw_data_start_date: "2005-01-01"
 
 raw_data_end_date: "2026-01-01"
 

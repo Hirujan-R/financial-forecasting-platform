@@ -19,10 +19,10 @@ stages:
   feature_engineering:
     cmd: kedro run --pipeline=feature_engineering
     deps:
+      - src/financial_forecasting_platform/features/engineering.py
       - src/financial_forecasting_platform/pipelines/feature_engineering
       - data/02_validated_raw/validated_raw_data.parquet
       - conf/base/catalog.yml
-      - conf/base/parameters_data_validation.yml
     outs:
       - data/03_feature/lr_features.parquet
       - data/03_feature/xgboost_features.parquet

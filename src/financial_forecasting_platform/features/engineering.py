@@ -2,22 +2,107 @@ import pandas as pd
 import numpy as np
 import warnings
 
-def create_market_movement_target(df: pd.DataFrame) -> pd.Series:
-    """Returns 1 if the Close price of next day is greater than Close price of 
-       current day and 0 otherwise. Target variable of the model."""
+
+def create_market_movement_target(
+    df: pd.DataFrame,
+    forward_window: int = 5,
+    lookback_window: int = 20,
+) -> pd.DataFrame:
+    """
+    Creates a binary target based on future Garman-Klass realized volatility.
+
+    Target:
+        1 -> Future average Garman-Klass variance is greater than the trailing
+             average Garman-Klass variance (volatility expansion).
+        0 -> Otherwise (volatility contraction).
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Must contain Date, Ticker, Open, High, Low, Close.
+    forward_window : int
+        Number of future bars used to compute realized variance.
+    lookback_window : int
+        Number of historical bars used for the rolling volatility baseline.
+
+    Returns
+    -------
+    pd.DataFrame
+        Original dataframe with market_movement target column.
+    """
+
     return_df = df.copy()
-    return_df.sort_values("Date", inplace=True)
+    return_df.sort_values(["Ticker", "Date"], inplace=True)
 
-    market_difference = return_df.groupby("Ticker")["Close"].diff(-1)
-    market_movement = np.where(
-        market_difference.isna(), np.nan, (market_difference < 0).astype(float)
+    # ------------------------------------------------------------------
+    # Step 1: Per-bar Garman-Klass variance
+    # ------------------------------------------------------------------
+
+    log_hl = np.log(return_df["High"] / return_df["Low"])
+    log_co = np.log(return_df["Close"] / return_df["Open"])
+
+    return_df["_gk_variance"] = (
+        0.5 * log_hl**2
+        - (2 * np.log(2) - 1) * log_co**2
     )
 
-    return pd.Series(
-    market_movement,
-    index=return_df.index,
-    name="market_movement"
+    # ------------------------------------------------------------------
+    # Step 2: Trailing average variance (baseline)
+    # ------------------------------------------------------------------
+
+    return_df["_rolling_variance"] = (
+        return_df.groupby("Ticker")["_gk_variance"]
+        .transform(
+            lambda x: x.rolling(
+                window=lookback_window,
+                min_periods=lookback_window,
+            ).mean()
+        )
     )
+
+    # ------------------------------------------------------------------
+    # Step 3: Forward average realized variance
+    # Uses bars t+1 ... t+N
+    # ------------------------------------------------------------------
+
+    def forward_average(series):
+        return (
+            series.shift(-1)
+            .rolling(window=forward_window, min_periods=forward_window)
+            .mean()
+            .shift(-(forward_window - 1))
+        )
+
+    return_df["_forward_variance"] = (
+        return_df.groupby("Ticker")["_gk_variance"]
+        .transform(forward_average)
+    )
+
+    # ------------------------------------------------------------------
+    # Step 4: Binary target
+    # ------------------------------------------------------------------
+
+    return_df["market_movement"] = np.where(
+        return_df["_forward_variance"].isna()
+        | return_df["_rolling_variance"].isna(),
+        np.nan,
+        (
+            return_df["_forward_variance"]
+            > return_df["_rolling_variance"]
+        ).astype(float),
+    )
+
+    # Remove intermediate columns
+    return_df.drop(
+        columns=[
+            "_gk_variance",
+            "_rolling_variance",
+            "_forward_variance",
+        ],
+        inplace=True,
+    )
+
+    return return_df
 
 def create_close_lag_feature(df: pd.DataFrame, lag: int = 1) -> pd.DataFrame:
     """Creates the lag close price feature. By default, lag is set to one."""
@@ -388,7 +473,7 @@ def create_volume_pct_change_feature(df: pd.DataFrame, lag: int = 1) -> pd.DataF
 
        volume_pct_change = (Volume_t - Volume_t-lag) Volume_t-1"""
     if lag < 1:
-        raise ValueError("lag must be an integer greater than 1.")
+        raise ValueError("lag must be an integer greater than or equal to 1.")
     return_df = df.copy()
     return_df.sort_values("Date", inplace=True)
     lag_volume = return_df.groupby("Ticker")["Volume"].shift(lag)
@@ -482,14 +567,6 @@ def create_rolling_window_mdd_feature(df: pd.DataFrame, window_size: int = 2) ->
     return_df[f"rolling_window_mdd_{window_size}"] = drawdown.groupby(return_df["Ticker"]).transform(lambda x: x.rolling(window=window_size, min_periods=window_size).min())
     return return_df
 
-def create_date_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Creates date feautes: day of week, month."""
-    return_df = df.copy()
-    return_df.sort_values("Date", inplace=True)
-    return_df["day_of_week"] = return_df["Date"].transform(lambda x: x.strftime('%A'))
-    return_df["month"] = return_df["Date"].transform(lambda x: x.strftime('%m'))
-    return return_df
-
 def create_rolling_sharpe_ratio_feature(df: pd.DataFrame, window_size: int = 2) -> pd.DataFrame:
     """Creates rolling sharpe ratio feature.
        Sharpe ratio measures the performance of an investment compared to a risk-free
@@ -509,4 +586,469 @@ def create_rolling_sharpe_ratio_feature(df: pd.DataFrame, window_size: int = 2) 
     mean_return = daily_return.groupby(return_df["Ticker"]).transform(lambda x: x.rolling(window=window_size, min_periods=window_size).mean())
     std_return = daily_return.groupby(return_df["Ticker"]).transform(lambda x: x.rolling(window=window_size, min_periods=window_size).std()).replace(0.0, np.nan)
     return_df[f"sharpe_{window_size}"] = mean_return / std_return
+    return return_df
+
+def create_date_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Creates date feautes: day of week, month."""
+    return_df = df.copy()
+    return_df.sort_values("Date", inplace=True)
+    return_df["day_of_week"] = return_df["Date"].transform(lambda x: x.strftime('%A'))
+    return_df["month"] = return_df["Date"].transform(lambda x: x.strftime('%m'))
+    return return_df
+
+def create_garman_klass_variance(df: pd.DataFrame, lag: int = 1) -> pd.DataFrame:
+    """Garman-Klass volatility estimator stimates volatility using the full trading range's 
+       variance (OHLC).
+       Creates Garman-Klass Variance feature:
+       gk_variance_lag_{lag}"""
+    if not isinstance(lag, int) or lag < 1:
+        raise ValueError("lag must be an integer greater than or equal to 1.")
+    
+    return_df = df.copy()
+    return_df.sort_values(["Ticker", "Date"], inplace=True)
+
+    high = return_df.groupby("Ticker")["High"].shift(lag)
+    low = return_df.groupby("Ticker")["Low"].shift(lag)
+    close = return_df.groupby("Ticker")["Close"].shift(lag)
+    open_ = return_df.groupby("Ticker")["Open"].shift(lag)
+
+    ln_hl = np.log(high.replace(0.0, np.nan) / low.replace(0.0, np.nan))
+    ln_co = np.log(close.replace(0.0, np.nan) / open_.replace(0.0, np.nan))
+    col_name = f"gk_variance_lag_{lag}"
+    return_df[col_name] = 0.5*(ln_hl.pow(2)) - (2*np.log(2) - 1)*ln_co.pow(2)
+    return return_df
+
+def create_gk_variance_rolling_mean(df: pd.DataFrame, window_size: int = 2, 
+                                    lag: int = 1) -> pd.DataFrame:
+    """Garman-Klass volatility estimator stimates volatility using the full trading range's 
+       variance (OHLC).
+       Creates rolling average of Garman-Klass Variance feature:
+       gk_variance_mean_{window_size}_lag_{lag}"""
+    if not isinstance(window_size, int) or window_size < 1:
+        raise ValueError("window_size must be an integer greater than or equal to 1.")
+    if not isinstance(lag, int) or lag < 1:
+        raise ValueError("lag must be an integer greater than or equal to 1.")
+    
+    return_df = df.copy()
+    return_df.sort_values(["Ticker", "Date"], inplace=True)
+
+    high = return_df.groupby("Ticker")["High"].shift(lag)
+    low = return_df.groupby("Ticker")["Low"].shift(lag)
+    close = return_df.groupby("Ticker")["Close"].shift(lag)
+    open_ = return_df.groupby("Ticker")["Open"].shift(lag)
+
+    ln_hl = np.log(high.replace(0.0, np.nan) / low.replace(0.0, np.nan))
+    ln_co = np.log(close.replace(0.0, np.nan) / open_.replace(0.0, np.nan))
+    gk_variance = 0.5*(ln_hl.pow(2)) - (2*np.log(2) - 1)*ln_co.pow(2)
+
+    col_name = f"gk_variance_mean_{window_size}_lag_{lag}"
+    return_df[col_name] = gk_variance.groupby(return_df["Ticker"]).transform(
+        lambda x: x.rolling(window_size, min_periods=window_size).mean()
+    )
+    return return_df
+
+def create_parkinson_variance(df: pd.DataFrame, lag: int = 1) -> pd.DataFrame:
+    """Parkinson volatility estimator estimates volatility using the 
+       difference between daily High and Low prices.
+       Creates parkinson variance feature:
+       parkinson_variance_lag_{lag}."""
+    if not isinstance(lag, int) or lag < 1:
+        raise ValueError("lag must be an integer greater than or equal to 1.")
+    
+    return_df = df.copy()
+    return_df.sort_values(["Ticker", "Date"], inplace=True)
+
+    high = return_df.groupby("Ticker")["High"].shift(lag).replace(0.0, np.nan)
+    low = return_df.groupby("Ticker")["Low"].shift(lag).replace(0.0, np.nan)
+
+    col_name = f"parkinson_variance_lag_{lag}"
+    return_df[col_name] = (1 / (4*np.log(2))) * np.log(high / low).pow(2)
+
+    return return_df
+
+def create_parkinson_variance_rolling_mean(df: pd.DataFrame, window_size: int = 2, 
+                                    lag: int = 1) -> pd.DataFrame:
+    """Parkinson volatility estimator estimates volatility using the 
+       difference between daily High and Low prices.
+       Creates rolling average of parkinson variance feature:
+       parkinson_variance_mean_{window_size}_lag_{lag}."""
+    if not isinstance(window_size, int) or window_size < 1:
+        raise ValueError("window_size must be an integer greater than or equal to 1.")
+    if not isinstance(lag, int) or lag < 1:
+        raise ValueError("lag must be an integer greater than or equal to 1.")
+    
+    return_df = df.copy()
+    return_df.sort_values(["Ticker", "Date"], inplace=True)
+
+    high = return_df.groupby("Ticker")["High"].shift(lag).replace(0.0, np.nan)
+    low = return_df.groupby("Ticker")["Low"].shift(lag).replace(0.0, np.nan)
+
+    parkinson_variance = (1 / (4*np.log(2))) * np.log(high / low).pow(2)
+
+    col_name = f"parkinson_variance_mean_{window_size}_lag_{lag}"
+    return_df[col_name] = parkinson_variance.groupby(return_df["Ticker"]).transform(
+        lambda x: x.rolling(window_size, min_periods=window_size).mean()
+    )
+
+    return return_df
+
+def create_parkinson_volatility(df: pd.DataFrame, window_size: int = 2, 
+                                    lag: int = 1) -> pd.DataFrame:
+    """Parkinson volatility estimator estimates volatility using the 
+       difference between daily High and Low prices.
+       Creates parkinson volatility feature:
+       parkinson_volatility_{window_size}_lag_{lag}."""
+    if not isinstance(window_size, int) or window_size < 1:
+        raise ValueError("window_size must be an integer greater than or equal to 1.")
+    if not isinstance(lag, int) or lag < 1:
+        raise ValueError("lag must be an integer greater than or equal to 1.")
+    
+    return_df = df.copy()
+    return_df.sort_values(["Ticker", "Date"], inplace=True)
+
+    high = return_df.groupby("Ticker")["High"].shift(lag).replace(0.0, np.nan)
+    low = return_df.groupby("Ticker")["Low"].shift(lag).replace(0.0, np.nan)
+
+    parkinson_variance = (1 / (4*np.log(2))) * np.log(high / low).pow(2)
+
+    col_name = f"parkinson_volatility_{window_size}_lag_{lag}"
+    return_df[col_name] = parkinson_variance.groupby(return_df["Ticker"]).transform(
+        lambda x: x.rolling(window_size, min_periods=window_size).mean().pow(0.5)
+    )
+
+    return return_df
+
+def create_rogers_satchell_variance(df: pd.DataFrame, lag: int = 1) -> pd.DataFrame:
+    """Rojers-Satchell volatility estimator estimates volatility accounting
+       for directional trends.
+       Creates Rojers-Satchell variance feature:
+       rogers_satchell_variance_lag_{lag}."""
+    if not isinstance(lag, int) or lag < 1:
+        raise ValueError("lag must be an integer greater than or equal to 1.")
+    
+    return_df = df.copy()
+    return_df.sort_values(["Ticker", "Date"], inplace=True)
+
+    high = return_df.groupby("Ticker")["High"].shift(lag).replace(0.0, np.nan)
+    low = return_df.groupby("Ticker")["Low"].shift(lag).replace(0.0, np.nan)
+    open = return_df.groupby("Ticker")["Open"].shift(lag).replace(0.0, np.nan)
+    close = return_df.groupby("Ticker")["Close"].shift(lag).replace(0.0, np.nan)
+
+    ln_hc = np.log(high / close)
+    ln_ho = np.log(high / open)
+    ln_lc = np.log(low / close)
+    ln_lo = np.log(low / open)
+
+    col_name = f"rogers_satchell_variance_lag_{lag}"
+    return_df[col_name] = ln_hc*ln_ho + ln_lc*ln_lo
+
+    return return_df
+
+def create_rogers_satchell_variance_rolling_mean(df: pd.DataFrame, window_size: int = 2, 
+                                    lag: int = 1) -> pd.DataFrame:
+    """Rojers-Satchell volatility estimator estimates volatility accounting
+       for directional trends.
+       Creates rolling average of Rojers-Satchell variance feature:
+       rs_variance_mean_{window_size}_lag_{lag}."""
+    if not isinstance(window_size, int) or window_size < 1:
+        raise ValueError("window_size must be an integer greater than or equal to 1.")
+    if not isinstance(lag, int) or lag < 1:
+        raise ValueError("lag must be an integer greater than or equal to 1.")
+    
+    return_df = df.copy()
+    return_df.sort_values(["Ticker", "Date"], inplace=True)
+
+    high = return_df.groupby("Ticker")["High"].shift(lag).replace(0.0, np.nan)
+    low = return_df.groupby("Ticker")["Low"].shift(lag).replace(0.0, np.nan)
+    open = return_df.groupby("Ticker")["Open"].shift(lag).replace(0.0, np.nan)
+    close = return_df.groupby("Ticker")["Close"].shift(lag).replace(0.0, np.nan)
+
+    ln_hc = np.log(high / close)
+    ln_ho = np.log(high / open)
+    ln_lc = np.log(low / close)
+    ln_lo = np.log(low / open)
+    rs_variance = ln_hc*ln_ho + ln_lc*ln_lo
+
+    col_name = f"rs_variance_mean_{window_size}_lag_{lag}"
+    return_df[col_name] = rs_variance.groupby(return_df["Ticker"]).transform(
+        lambda x: x.rolling(window_size, min_periods=window_size).mean()
+    )
+
+    return return_df
+
+def create_rogers_satchell_volatility(df: pd.DataFrame, window_size: int = 2, 
+                                    lag: int = 1) -> pd.DataFrame:
+    """Rojers-Satchell volatility estimator estimates volatility accounting
+       for directional trends.
+       Creates Rojers-Satchell volatility feature:
+       rs_volatility_{window_size}_lag_{lag}."""
+    if not isinstance(window_size, int) or window_size < 1:
+        raise ValueError("window_size must be an integer greater than or equal to 1.")
+    if not isinstance(lag, int) or lag < 1:
+        raise ValueError("lag must be an integer greater than or equal to 1.")
+    
+    return_df = df.copy()
+    return_df.sort_values(["Ticker", "Date"], inplace=True)
+
+    high = return_df.groupby("Ticker")["High"].shift(lag).replace(0.0, np.nan)
+    low = return_df.groupby("Ticker")["Low"].shift(lag).replace(0.0, np.nan)
+    open = return_df.groupby("Ticker")["Open"].shift(lag).replace(0.0, np.nan)
+    close = return_df.groupby("Ticker")["Close"].shift(lag).replace(0.0, np.nan)
+
+    ln_hc = np.log(high / close)
+    ln_ho = np.log(high / open)
+    ln_lc = np.log(low / close)
+    ln_lo = np.log(low / open)
+    rs_variance = ln_hc*ln_ho + ln_lc*ln_lo
+
+    col_name = f"rs_volatility_{window_size}_lag_{lag}"
+    return_df[col_name] = rs_variance.groupby(return_df["Ticker"]).transform(
+        lambda x: x.rolling(window_size, min_periods=window_size).mean().pow(0.5)
+    )
+
+    return return_df
+
+def create_yang_zhang_variance(df: pd.DataFrame, lag: int = 1) -> pd.DataFrame:
+    """Yang-Zhang volatility estimator estimates volatility by combining
+       overnight jumps and trading price movements. Expands on the Rojers-Satchell
+       and Garman-Klass formulas.
+       Creates Yang-Zhang variance feature:
+       yz_variance_lag_{lag}"""
+    if not isinstance(lag, int) or lag < 1:
+        raise ValueError("lag must be an integer greater than or equal to 1.")
+    
+    return_df = df.copy()
+    return_df.sort_values(["Ticker", "Date"], inplace=True)
+    high = return_df.groupby("Ticker")["High"].shift(lag).replace(0.0, np.nan)
+    low = return_df.groupby("Ticker")["Low"].shift(lag).replace(0.0, np.nan)
+    open = return_df.groupby("Ticker")["Open"].shift(lag).replace(0.0, np.nan)
+    close = return_df.groupby("Ticker")["Close"].shift(lag).replace(0.0, np.nan)
+
+    prev_close = close.shift(1).replace(0.0, np.nan)
+    overnight_return = np.log(df["Open"].replace(0.0, np.nan) / prev_close)
+    overnight_variance = overnight_return.groupby(df["Ticker"]).transform(
+        lambda x: x.rolling(20).var()
+    )
+
+    close_open_return = np.log(return_df['Close'] / return_df['Open'])
+    close_open_variance = close_open_return.groupby(df["Ticker"]).transform(
+        lambda x:
+        x.rolling(20)
+        .var()
+    )
+       
+    ln_hc = np.log(high / close)
+    ln_ho = np.log(high / open)
+    ln_lc = np.log(low / close)
+    ln_lo = np.log(low / open)
+
+    rs_variance = ln_hc*ln_ho + ln_lc*ln_lo
+    rs_rolling_mean_variance = rs_variance.groupby(return_df["Ticker"]).transform(
+        lambda x: x.rolling(20, min_periods=20).mean()
+    )
+    k = (0.34 / (1.34 + (20 + 1) / (20 - 1)))
+
+    return_df[f"yz_variance_lag_{lag}"] = (
+        overnight_variance + k * close_open_variance
+        + (1 - k) * rs_rolling_mean_variance
+    )
+
+    return return_df
+
+def create_yang_zhang_variance_rolling_mean(df: pd.DataFrame, lag: int = 1, 
+                                          window_size: int = 1) -> pd.DataFrame:
+    """Yang-Zhang volatility estimator estimates volatility by combining
+       overnight jumps and trading price movements. Expands on the Rojers-Satchell
+       and Garman-Klass formulas.
+       Creates rolling average of Yang-Zhang variance feature:
+       "yz_variance_mean_{window_size}_lag_{lag}."""
+    if not isinstance(lag, int) or lag < 1:
+        raise ValueError("lag must be an integer greater than or equal to 1.")
+    if not isinstance(window_size, int) or window_size < 1:
+        raise ValueError("window_size must be an integer greater than or equal to 1.")
+    
+    return_df = df.copy()
+    return_df.sort_values(["Ticker", "Date"], inplace=True)
+    high = return_df.groupby("Ticker")["High"].shift(lag).replace(0.0, np.nan)
+    low = return_df.groupby("Ticker")["Low"].shift(lag).replace(0.0, np.nan)
+    open = return_df.groupby("Ticker")["Open"].shift(lag).replace(0.0, np.nan)
+    close = return_df.groupby("Ticker")["Close"].shift(lag).replace(0.0, np.nan)
+
+    prev_close = close.shift(1).replace(0.0, np.nan)
+    overnight_return = np.log(df["Open"].replace(0.0, np.nan) / prev_close)
+    overnight_variance = overnight_return.groupby(df["Ticker"]).transform(
+        lambda x: x.rolling(20).var()
+    )
+
+    close_open_return = np.log(return_df['Close'] / return_df['Open'])
+    close_open_variance = close_open_return.groupby(df["Ticker"]).transform(
+        lambda x:
+        x.rolling(20)
+        .var()
+    )
+       
+    ln_hc = np.log(high / close)
+    ln_ho = np.log(high / open)
+    ln_lc = np.log(low / close)
+    ln_lo = np.log(low / open)
+
+    rs_variance = ln_hc*ln_ho + ln_lc*ln_lo
+    rs_rolling_mean_variance = rs_variance.groupby(return_df["Ticker"]).transform(
+        lambda x: x.rolling(20, min_periods=20).mean()
+    )
+    k = (0.34 / (1.34 + (20 + 1) / (20 - 1)))
+
+    yz_variance = (
+        overnight_variance + k * close_open_variance
+        + (1 - k) * rs_rolling_mean_variance
+    )
+    
+    return_df[f"yz_variance_mean_{window_size}_lag_{lag}"] = (
+        yz_variance.groupby(return_df["Ticker"]).transform(
+            lambda x: x.rolling(window_size, min_periods=window_size).mean()
+        )
+    )
+
+    return return_df
+
+def create_yang_zhang_volatility(df: pd.DataFrame, lag: int = 1, 
+                                          window_size: int = 1) -> pd.DataFrame:
+    """Yang-Zhang volatility estimator estimates volatility by combining
+       overnight jumps and trading price movements. Expands on the Rojers-Satchell
+       and Garman-Klass formulas.
+       Creates Yang-Zhang volatility feature:
+       yz_volatility_{window_size}_lag_{lag}"""
+    if not isinstance(lag, int) or lag < 1:
+        raise ValueError("lag must be an integer greater than or equal to 1.")
+    if not isinstance(window_size, int) or window_size < 1:
+        raise ValueError("window_size must be an integer greater than or equal to 1.")
+    
+    return_df = df.copy()
+    return_df.sort_values(["Ticker", "Date"], inplace=True)
+    high = return_df.groupby("Ticker")["High"].shift(lag).replace(0.0, np.nan)
+    low = return_df.groupby("Ticker")["Low"].shift(lag).replace(0.0, np.nan)
+    open = return_df.groupby("Ticker")["Open"].shift(lag).replace(0.0, np.nan)
+    close = return_df.groupby("Ticker")["Close"].shift(lag).replace(0.0, np.nan)
+
+    prev_close = close.shift(1).replace(0.0, np.nan)
+    overnight_return = np.log(df["Open"].replace(0.0, np.nan) / prev_close)
+    overnight_variance = overnight_return.groupby(df["Ticker"]).transform(
+        lambda x: x.rolling(20).var()
+    )
+
+    close_open_return = np.log(return_df['Close'] / return_df['Open'])
+    close_open_variance = close_open_return.groupby(df["Ticker"]).transform(
+        lambda x:
+        x.rolling(20)
+        .var()
+    )
+       
+    ln_hc = np.log(high / close)
+    ln_ho = np.log(high / open)
+    ln_lc = np.log(low / close)
+    ln_lo = np.log(low / open)
+
+    rs_variance = ln_hc*ln_ho + ln_lc*ln_lo
+    rs_rolling_mean_variance = rs_variance.groupby(return_df["Ticker"]).transform(
+        lambda x: x.rolling(20, min_periods=20).mean()
+    )
+    k = (0.34 / (1.34 + (20 + 1) / (20 - 1)))
+
+    yz_variance = (
+        overnight_variance + k * close_open_variance
+        + (1 - k) * rs_rolling_mean_variance
+    )
+    
+    
+    yz_rolling_mean_variance = yz_variance.groupby(return_df["Ticker"]).transform(
+        lambda x: x.rolling(window_size, min_periods=window_size).mean()
+    )
+    return_df[f"yz_volatility_{window_size}_lag_{lag}"] = (
+        yz_rolling_mean_variance.pow(0.5)
+    )
+
+    return return_df
+
+def create_yang_zhang_volatility_ratio_feature(df: pd.DataFrame, short_span: int = 5,
+                                       long_span: int = 20):
+    """Yang-Zhang volatility estimator estimates volatility by combining
+       overnight jumps and trading price movements. Expands on the Rojers-Satchell
+       and Garman-Klass formulas.
+       Creates Yang-Zhang volatility ratio feature:
+       yz_volatility_ratio_{short_span}_{long_span}"""
+    if not isinstance(short_span, int) or short_span < 1:
+        raise ValueError("short_span must be an integer greater than or equal to 1.")
+    if not isinstance(long_span, int) or long_span <= short_span:
+        raise ValueError("long_span must be an integer greater than short_span.")
+    return_df = df.copy()
+    return_df.sort_values(["Ticker", "Date"], inplace=True)
+
+    def return_yz_volatility(df: pd.DataFrame, window_size: int):
+        df = create_yang_zhang_volatility(return_df, lag=1, window_size=window_size)
+        return df[f"yz_volatility_{window_size}_lag_1"]
+    yz_volatility_short = return_yz_volatility(return_df, short_span)
+    yz_volatility_long = return_yz_volatility(return_df, long_span)
+
+    col_name = f"yz_volatility_ratio_{short_span}_{long_span}"
+    return_df[col_name] = yz_volatility_short / yz_volatility_long
+    return return_df
+
+def create_yang_zhang_volatility_features(df: pd.DataFrame, lag: int = 1, 
+                                          window_size: int = 1) -> pd.DataFrame:
+    """Yang-Zhang volatility estimator estimates volatility by combining
+       overnight jumps and trading price movements. Expands on the Rojers-Satchell
+       and Garman-Klass formulas.
+       Creates Yang-Zhang volatility features:
+       yz_variance_lag_{lag}
+       yz_variance_mean_{window_size}_lag_{lag}
+       yz_volatility_{window_size}_lag_{lag}."""
+    if not isinstance(lag, int) or lag < 1:
+        raise ValueError("lag must be an integer greater than or equal to 1.")
+    if not isinstance(window_size, int) or window_size < 1:
+        raise ValueError("window_size must be an integer greater than or equal to 1.")
+    
+    return_df = df.copy()
+    return_df.sort_values(["Ticker", "Date"], inplace=True)
+    high = return_df.groupby("Ticker")["High"].shift(lag).replace(0.0, np.nan)
+    low = return_df.groupby("Ticker")["Low"].shift(lag).replace(0.0, np.nan)
+    open = return_df.groupby("Ticker")["Open"].shift(lag).replace(0.0, np.nan)
+    close = return_df.groupby("Ticker")["Close"].shift(lag).replace(0.0, np.nan)
+
+    prev_close = close.shift(1).replace(0.0, np.nan)
+    overnight_return = np.log(df["Open"].replace(0.0, np.nan) / prev_close)
+    overnight_variance = overnight_return.groupby(df["Ticker"]).transform(
+        lambda x: x.rolling(20).var()
+    )
+
+    close_open_return = np.log(return_df['Close'] / return_df['Open'])
+    close_open_variance = close_open_return.groupby(df["Ticker"]).transform(
+        lambda x:
+        x.rolling(20)
+        .var()
+    )
+       
+    ln_hc = np.log(high / close)
+    ln_ho = np.log(high / open)
+    ln_lc = np.log(low / close)
+    ln_lo = np.log(low / open)
+
+    rs_variance = ln_hc*ln_ho + ln_lc*ln_lo
+    rs_rolling_mean_variance = rs_variance.groupby(return_df["Ticker"]).transform(
+        lambda x: x.rolling(20, min_periods=20).mean()
+    )
+    k = (0.34 / (1.34 + (20 + 1) / (20 - 1)))
+
+    return_df[f"yz_variance_lag_{lag}"] = (
+        overnight_variance + k * close_open_variance
+        + (1 - k) * rs_rolling_mean_variance
+    )
+    return_df[f"yz_variance_mean_{window_size}_lag_{lag}"] = (
+        return_df[f"yz_variance_lag_{lag}"].groupby(return_df["Ticker"]).transform(
+            lambda x: x.rolling(window_size, min_periods=window_size).mean()
+        )
+    )
+    return_df[f"yz_volatility_{window_size}_lag_{lag}"] = (
+        return_df[f"yz_variance_mean_{window_size}_lag_{lag}"].pow(0.5)
+    )
+
     return return_df

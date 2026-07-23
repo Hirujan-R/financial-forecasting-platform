@@ -1,182 +1,86 @@
 import pandas as pd
-from financial_forecasting_platform.features.engineering import create_log_return_lag_feature, \
-    create_ema_crossover_feature, create_log_distance_from_sma_feature, create_rsi_feature, \
-    create_momentum_feature, create_log_return_volatility_feature, \
-    create_bollinger_bands_features, create_daily_range_feature, create_range_percentage_feature, \
-    create_candle_body_feature, create_upper_shadow_feature, create_lower_shadow_feature, \
-    create_body_percentage_feature, create_upper_shadow_percentage_feature, create_lower_shadow_percentage_feature, \
-    create_volume_pct_change_feature, create_relative_volume_feature, \
-    create_volume_sma_feature, create_return_x_volume_feature, create_drawdown_feature, \
-    create_rolling_window_mdd_feature, create_rolling_sharpe_ratio_feature, \
-    create_date_features, create_market_movement_target
+from financial_forecasting_platform.features.engineering import create_market_movement_target
+import financial_forecasting_platform.features.engineering as fe
 
+FEATURE_FUNCTION_REGISTRY = {
+    name: getattr(fe, name)
+    for name in dir(fe)
+    if name.startswith("create_")
+    and name not in ("create_all_features")
+}
 
-def lr_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
+def create_all_features(df: pd.DataFrame, feature_config: list, 
+                        columns_to_drop: list | None = None, 
+                        date_column: str = "Date") -> pd.DataFrame:
     return_df = df.copy()
 
-    # Log Return
-    return_df = create_log_return_lag_feature(df=return_df, lag=1)
-    return_df = create_log_return_lag_feature(df=return_df, lag=5)
-    return_df = create_log_return_lag_feature(df=return_df, lag=10)
-    return_df = create_log_return_lag_feature(df=return_df, lag=20)
-
-    # Trend Positioning
-    return_df = create_log_distance_from_sma_feature(df=return_df, window_size=5)
-    return_df = create_log_distance_from_sma_feature(df=return_df, window_size=10)
-    return_df = create_log_distance_from_sma_feature(df=return_df, window_size=20)
-
-    # Volatility
-    return_df = create_log_return_volatility_feature(df=return_df, window_size=5)
-    return_df = create_log_return_volatility_feature(df=return_df, window_size=10)
-    return_df = create_log_return_volatility_feature(df=return_df, window_size=20)
-
-    # Volatility regime
-    return_df = create_bollinger_bands_features(df=return_df, window_size=20)
-    return_df = create_rsi_feature(df=return_df, window_size=14)
-
-    # Candle structure
-    return_df = create_range_percentage_feature(df=return_df)
-    return_df = create_body_percentage_feature(df=return_df)
-    return_df = create_upper_shadow_percentage_feature(df=return_df)
-    return_df = create_lower_shadow_percentage_feature(df=return_df)
-
-    # Volume
-    return_df = create_volume_pct_change_feature(df=return_df, lag=1)
-    return_df = create_relative_volume_feature(df=return_df, window_size=5)
-    return_df = create_relative_volume_feature(df=return_df, window_size=20)
-
-    # Risk
-    return_df = create_drawdown_feature(df=return_df, window_size=20)
-    return_df = create_rolling_sharpe_ratio_feature(df=return_df, window_size=20)
-
-    # Date
-    return_df = create_date_features(df=return_df)
-
-    return_df = return_df.drop(columns=["Open","High","Low","Close","Volume"])
-    return_df.set_index("Date", inplace=True)
-
-    return return_df
-
-def xgboost_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
-    return_df = df.copy()
-
-    # Log Return
-    return_df = create_log_return_lag_feature(df=return_df, lag=1)
-    return_df = create_log_return_lag_feature(df=return_df, lag=2)
-    return_df = create_log_return_lag_feature(df=return_df, lag=3)
-    return_df = create_log_return_lag_feature(df=return_df, lag=5)
-    return_df = create_log_return_lag_feature(df=return_df, lag=10)
-    return_df = create_log_return_lag_feature(df=return_df, lag=20)
-    return_df = create_log_distance_from_sma_feature(df=return_df, window_size=50)
-
-    # Trend Positioning
-    return_df = create_log_distance_from_sma_feature(df=return_df, window_size=5)
-    return_df = create_log_distance_from_sma_feature(df=return_df, window_size=10)
-    return_df = create_log_distance_from_sma_feature(df=return_df, window_size=20)
-
-    # Crossover
-    return_df = create_ema_crossover_feature(df=return_df, short_span=5, long_span=20)
-    return_df = create_ema_crossover_feature(df=return_df, short_span=12, long_span=26)
-
-    # Volatility
-    return_df = create_log_return_volatility_feature(df=return_df, window_size=5)
-    return_df = create_log_return_volatility_feature(df=return_df, window_size=10)
-    return_df = create_log_return_volatility_feature(df=return_df, window_size=20)
-
-    # Volatility regime
-    return_df = create_bollinger_bands_features(df=return_df, window_size=10)
-    return_df = create_bollinger_bands_features(df=return_df, window_size=20)
-    return_df = create_rsi_feature(df=return_df, window_size=7)
-    return_df = create_rsi_feature(df=return_df, window_size=14)
-    return_df = create_rsi_feature(df=return_df, window_size=21)
-
-    # Candle structure
-    return_df = create_daily_range_feature(df=return_df)
-    return_df = create_range_percentage_feature(df=return_df)
-    return_df = create_candle_body_feature(df=return_df)
-    return_df = create_upper_shadow_feature(df=return_df)
-    return_df = create_lower_shadow_feature(df=return_df)
-    return_df = create_body_percentage_feature(df=return_df)
-    return_df = create_upper_shadow_percentage_feature(df=return_df)
-    return_df = create_lower_shadow_percentage_feature(df=return_df)
+    for feature in feature_config:
+        function_name = feature["function"]
+        kwargs = feature.get("kwargs", {})
+        try:
+            func = FEATURE_FUNCTION_REGISTRY[function_name]
+        except KeyError:
+            raise ValueError(
+                f"Feature engineering function '{function_name}' is not "
+                f"registered in FEATURE_FUNCTION_REGISTRY. Registered "
+                f"functions: {sorted(FEATURE_FUNCTION_REGISTRY)}"
+            )
+        return_df = func(df=return_df, **kwargs)
     
-    # Volume
-    return_df = create_volume_pct_change_feature(df=return_df, lag=1)
-    return_df = create_relative_volume_feature(df=return_df, window_size=5)
-    return_df = create_relative_volume_feature(df=return_df, window_size=20)
-    return_df = create_volume_sma_feature(df=return_df, window_size=20)
-    return_df = create_return_x_volume_feature(df=return_df)
-
-    # Risk
-    return_df = create_drawdown_feature(df=return_df, window_size=10)
-    return_df = create_drawdown_feature(df=return_df, window_size=20)
-    return_df = create_drawdown_feature(df=return_df, window_size=50)
-    return_df = create_rolling_window_mdd_feature(df=return_df, window_size=10)
-    return_df = create_rolling_window_mdd_feature(df=return_df, window_size=20)
-    return_df = create_rolling_window_mdd_feature(df=return_df, window_size=50)
-    return_df = create_rolling_sharpe_ratio_feature(df=return_df, window_size=10)
-    return_df = create_rolling_sharpe_ratio_feature(df=return_df, window_size=20)
-
-    # Momentum
-    return_df = create_momentum_feature(df=return_df, lag=1)
-    return_df = create_momentum_feature(df=return_df, lag=10)
-
-    # Date
-    return_df = create_date_features(df=return_df)
-
-    return_df = return_df.drop(columns=["Open","High","Low","Close","Volume"])
-    return_df.set_index("Date", inplace=True)
+    if columns_to_drop is None:
+        columns_to_drop = ["Open","High","Low","Close","Volume"]
+    return_df = return_df.drop(columns=columns_to_drop)
+    return_df.set_index(date_column, inplace=True)
 
     return return_df
 
-def mlp_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
-    return_df = df.copy()
 
-    # Log Return
-    return_df = create_log_return_lag_feature(df=return_df, lag=1)
-    return_df = create_log_return_lag_feature(df=return_df, lag=3)
-    return_df = create_log_return_lag_feature(df=return_df, lag=5)
-    return_df = create_log_return_lag_feature(df=return_df, lag=10)
-    return_df = create_log_return_lag_feature(df=return_df, lag=20)
+def lr_feature_engineering(df: pd.DataFrame, features: list | None = None) -> pd.DataFrame:
+    if features is None:
+        features = ["Ticker", "log_return_lag_1", "log_return_lag_5", "log_return_lag_10",
+                    "log_return_lag_20", "log_distance_close_vs_SMA_5", 
+                    "log_distance_close_vs_SMA_10", "log_distance_close_vs_SMA_20", 
+                    "log_return_volatility_5", "log_return_volatility_10", 
+                    "log_return_volatility_20", "bollinger_upper_distance_20", 
+                    "bollinger_lower_distance_20", "bollinger_bandwidth_20", 
+                    "rsi_14", "range_percentage", "body_percentage", 
+                    "upper_shadow_pct", "lower_shadow_pct", "volume_pct_change_1", 
+                    "relative_volume_5", "relative_volume_20", "drawdown_20", 
+                    "sharpe_20", "day_of_week", "month", "market_movement"]
+    return df[features]
 
-    # Trend Positioning
-    return_df = create_log_distance_from_sma_feature(df=return_df, window_size=5)
-    return_df = create_log_distance_from_sma_feature(df=return_df, window_size=10)
-    return_df = create_log_distance_from_sma_feature(df=return_df, window_size=20)
+def xgboost_feature_engineering(df: pd.DataFrame, features: list | None = None) -> pd.DataFrame:
+    if features is None:
+        features = ["Ticker", "log_return_lag_1", "log_return_lag_2", "log_return_lag_3", 
+                    "log_return_lag_5", "log_return_lag_10", "log_return_lag_20", 
+                    "log_distance_close_vs_SMA_5", "log_distance_close_vs_SMA_10", 
+                    "log_distance_close_vs_SMA_20", "log_distance_close_vs_SMA_50",
+                    "ema5_minus_ema20", "ema12_minus_ema26",
+                    "log_return_volatility_5", "log_return_volatility_10", 
+                    "log_return_volatility_20", "bollinger_upper_distance_10", 
+                    "bollinger_lower_distance_10", "bollinger_bandwidth_10",
+                    "bollinger_upper_distance_20", "bollinger_lower_distance_20", 
+                    "bollinger_bandwidth_20", "rsi_7", "rsi_14", "rsi_21",
+                    "daily_range", "range_percentage", 
+                    "candle_body", "upper_shadow", "lower_shadow", "body_percentage", 
+                    "upper_shadow_pct", "lower_shadow_pct", "volume_pct_change_1", 
+                    "relative_volume_5", "relative_volume_20", "volume_sma_20", 
+                    "return_x_volume", "drawdown_10", "drawdown_20", "drawdown_50",
+                    "rolling_window_mdd_10", "rolling_window_mdd_20", 
+                    "rolling_window_mdd_50", "sharpe_10", "sharpe_20", 
+                    "momentum_1", "momentum_10", "day_of_week", "month", "market_movement"]
+    return df[features]
 
-    # Volatility
-    return_df = create_log_return_volatility_feature(df=return_df, window_size=5)
-    return_df = create_log_return_volatility_feature(df=return_df, window_size=10)
-    return_df = create_log_return_volatility_feature(df=return_df, window_size=20)
-
-    # Volatility regime
-    return_df = create_bollinger_bands_features(df=return_df, window_size=20)
-    return_df = create_rsi_feature(df=return_df, window_size=7)
-    return_df = create_rsi_feature(df=return_df, window_size=14)
-
-    # Candle structure
-    return_df = create_range_percentage_feature(df=return_df)
-    return_df = create_body_percentage_feature(df=return_df)
-    return_df = create_upper_shadow_percentage_feature(df=return_df)
-    return_df = create_lower_shadow_percentage_feature(df=return_df)
-
-    # Volume
-    return_df = create_volume_pct_change_feature(df=return_df, lag=1)
-    return_df = create_relative_volume_feature(df=return_df, window_size=5)
-    return_df = create_relative_volume_feature(df=return_df, window_size=20)
-
-    # Risk
-    return_df = create_drawdown_feature(df=return_df, window_size=20)
-    return_df = create_rolling_window_mdd_feature(df=return_df, window_size=20)
-    return_df = create_rolling_sharpe_ratio_feature(df=return_df, window_size=20)
-
-    # Date
-    return_df = create_date_features(df=return_df)
-
-    return_df = return_df.drop(columns=["Open","High","Low","Close","Volume"])
-    return_df.set_index("Date", inplace=True)
-
-    return return_df
-
-def target_variable_engineering(df: pd.DataFrame):
-    return create_market_movement_target(df)
+def mlp_feature_engineering(df: pd.DataFrame, features: list | None = None) -> pd.DataFrame:
+    if features is None:
+        features = ["Ticker", "log_return_lag_1", "log_return_lag_3", "log_return_lag_5", "log_return_lag_10",
+                    "log_return_lag_20", "log_distance_close_vs_SMA_5", 
+                    "log_distance_close_vs_SMA_10", "log_distance_close_vs_SMA_20", 
+                    "log_return_volatility_5", "log_return_volatility_10", 
+                    "log_return_volatility_20", "bollinger_upper_distance_20", 
+                    "bollinger_lower_distance_20", "bollinger_bandwidth_20", 
+                    "rsi_7", "rsi_14", "range_percentage", "body_percentage", 
+                    "upper_shadow_pct", "lower_shadow_pct", "volume_pct_change_1", 
+                    "relative_volume_5", "relative_volume_20", "drawdown_20", 
+                    "rolling_window_mdd_20", "sharpe_20", "day_of_week", "month", "market_movement"]
+    return df[features]

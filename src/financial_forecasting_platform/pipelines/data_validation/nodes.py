@@ -129,6 +129,8 @@ def duplicate_validation(df: pd.DataFrame, row_id: tuple | None = None) -> pd.Da
 def financial_consistency_validation(df: pd.DataFrame, ohlcv_columns: tuple | None = None) \
                                      -> pd.DataFrame:
     """Raises error if financial market data is not consistent."""
+    # Adding tolerance to account for yfinance api autoadjust inconsistencies.
+    tolerance = 1e-4
     if ohlcv_columns is None:
         # Use default values if param not specified.
         ohlcv_columns = DEFAULT_OHLCV_COLUMNS
@@ -138,19 +140,19 @@ def financial_consistency_validation(df: pd.DataFrame, ohlcv_columns: tuple | No
             "ohlcv_columns must contain exactly five column names."
         )
     open_col, high_col, low_col, close_col, volume_col = ohlcv_columns
-    if ((df[open_col] <= 0)).any():
+    if (df[open_col] <= 0).any():
         raise ValueError("Open prices must be greater than 0.")
-    if ((df[close_col] <= 0)).any():
+    if (df[close_col] <= 0).any():
         raise ValueError("Close prices must be greater than 0.")
-    if ((df[high_col] < df[open_col])).any():
+    if (df[high_col] < (df[open_col] * (1 - tolerance))).any():
         raise ValueError("The High price must be greater than or equal to the Open price.")
-    if ((df[high_col] < df[close_col])).any():
+    if (df[high_col] < (df[close_col] * (1 - tolerance))).any():
         raise ValueError("The High price of an asset must be greater than or equal to the Close price.")
-    if ((df[high_col] < df[low_col])).any():
+    if (df[high_col] < (df[low_col] * (1 - tolerance))).any():
         raise ValueError("The High price of an asset must be greater than or equal to the Low price.")
-    if ((df[low_col] > df[open_col])).any():
+    if (df[low_col] > (df[open_col] * (1 + tolerance))).any():
         raise ValueError("The Low price of an asset must be smaller than or equal to the Open price.")
-    if ((df[low_col] > df[close_col])).any():
+    if (df[low_col] > (df[close_col] * (1 + tolerance))).any():
         raise ValueError("The Low price of an asset must be smaller than or equal to the Close price.")
     if ((df[volume_col] < 0)).any():
         raise ValueError("The Volume of an asset must be greater than or equal to 0.")

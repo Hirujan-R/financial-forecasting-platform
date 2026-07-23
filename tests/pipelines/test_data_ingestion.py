@@ -114,6 +114,7 @@ class TestDownloadOhlcvData:
             group_by="Ticker",
             start="2024-01-01",
             end="2024-01-05",
+            repair=True,
         )
 
     @patch("financial_forecasting_platform.pipelines.data_ingestion.nodes.yf.download")

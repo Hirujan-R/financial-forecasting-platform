@@ -13,13 +13,13 @@ from financial_forecasting_platform.features.engineering import (
 class TestCreateVolumePctChangeFeature:
     def test_adds_volume_pct_change(self, sample_ohlcv_df):
         result = create_volume_pct_change_feature(sample_ohlcv_df, lag=1)
-        assert "volume_pct_change" in result.columns
+        assert "volume_pct_change_1" in result.columns
 
     def test_volume_pct_change_values(self, sample_ohlcv_df):
         result = create_volume_pct_change_feature(sample_ohlcv_df, lag=1)
         for ticker in sample_ohlcv_df["Ticker"].unique():
             ticker_df = sample_ohlcv_df[sample_ohlcv_df["Ticker"] == ticker].sort_values("Date")
-            vol = result[result["Ticker"] == ticker].sort_values("Date")["volume_pct_change"]
+            vol = result[result["Ticker"] == ticker].sort_values("Date")["volume_pct_change_1"]
             prev_vol = ticker_df["Volume"].shift(1)
             expected = (ticker_df["Volume"] - prev_vol) / prev_vol
             valid = expected.dropna().index.intersection(vol.dropna().index)
@@ -34,7 +34,7 @@ class TestCreateVolumePctChangeFeature:
         result = create_volume_pct_change_feature(sample_ohlcv_df, lag=1)
         for ticker in sample_ohlcv_df["Ticker"].unique():
             ticker_result = result[result["Ticker"] == ticker]
-            assert np.isnan(ticker_result["volume_pct_change"].iloc[0])
+            assert np.isnan(ticker_result["volume_pct_change_1"].iloc[0])
 
     def test_invalid_lag_raises(self, sample_ohlcv_df):
         with pytest.raises(ValueError):
