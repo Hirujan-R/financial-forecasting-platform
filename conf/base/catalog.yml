@@ -2,9 +2,29 @@ raw_data:
   type: pandas.ParquetDataset
   filepath: data/01_raw/raw_data.parquet
 
+raw_spy_data:
+  type: pandas.ParquetDataset
+  filepath: data/01_raw/raw_spy_data.parquet
+
+raw_vix_data:
+  type: pandas.ParquetDataset
+  filepath: data/01_raw/raw_vix_data.parquet
+
 validated_raw_data:
   type: pandas.ParquetDataset
   filepath: data/02_validated_raw/validated_raw_data.parquet
+
+validated_spy_data:
+  type: pandas.ParquetDataset
+  filepath: data/02_validated_raw/validated_spy_data.parquet
+
+validated_vix_data:
+  type: pandas.ParquetDataset
+  filepath: data/02_validated_raw/validated_vix_data.parquet
+
+all_features:
+  type: pandas.ParquetDataset
+  filepath: data/03_feature/all_features.parquet
 
 lr_features:
   type: pandas.ParquetDataset
@@ -17,3 +37,53 @@ xgboost_features:
 mlp_features:
   type: pandas.ParquetDataset
   filepath: data/03_feature/mlp_features.parquet
+
+
+# Data Split
+
+lr_X:
+  type: pandas.ParquetDataset
+  filepath: data/04_model_input/lr_X.parquet
+
+lr_y:
+  type: pandas.ParquetDataset
+  filepath: data/04_model_input/lr_y.parquet  
+
+lr_X_train:
+  type: pandas.ParquetDataset
+  filepath: data/04_model_input/lr_X_train.parquet
+
+lr_X_test:
+  type: pandas.ParquetDataset
+  filepath: data/04_model_input/lr_X_test.parquet
+
+lr_y_train:
+  type: pandas.ParquetDataset
+  filepath: data/04_model_input/lr_y_train.parquet
+
+lr_y_test:
+  type: pandas.ParquetDataset
+  filepath: data/04_model_input/lr_y_test.parquet
+
+
+# Outlier handling
+
+outlier_clipped_lr_X_train:
+  type: pandas.ParquetDataset
+  filepath: data/04_model_input/outlier_clipped_lr_X_train.parquet
+
+outlier_clipped_lr_X_test:
+  type: pandas.ParquetDataset
+  filepath: data/04_model_input/outlier_clipped_lr_X_test.parquet
+
+# Model training
+
+lr_training_pipeline:
+  type: pickle.PickleDataset
+  filepath: data/04_model_input/lr_training_pipeline.pkl
+
+lr_mlflow_model_uri:
+  type: json.JSONDataset
+  filepath: data/05_models/lr_mlflow_model_uri.json
+
+

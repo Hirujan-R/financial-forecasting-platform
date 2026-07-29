@@ -1,4 +1,4 @@
-create_all_features_config:
+stock_features_config:
 
   # Log return
   - function: create_log_return_lag_feature
@@ -73,83 +73,131 @@ create_all_features_config:
       window_size: 21
     
   # Garman-Klass Volatility
-  - function: create_garman_klass_variance
+  - function: create_garman_klass_variance_feature
     kwargs:
       lag: 1
-  - function: create_garman_klass_variance
+  - function: create_garman_klass_variance_feature
     kwargs:
       lag: 5
-  - function: create_gk_variance_rolling_mean
+  - function: create_gk_variance_rolling_mean_feature
     kwargs:
       window_size: 5
       lag: 1
-  - function: create_gk_variance_rolling_mean
+  - function: create_gk_variance_rolling_mean_feature
     kwargs:
       window_size: 20
       lag: 1
+  - function: create_gk_regime_feature
+    kwargs:
+      short_span: 5
+      long_span: 20
+  - function: create_gk_regime_feature
+    kwargs:
+      short_span: 10
+      long_span: 60
+  - function: create_gk_regime_feature
+    kwargs:
+      short_span: 20
+      long_span: 60
 
   # Parkinson Volatility
-  - function: create_parkinson_variance
+  - function: create_parkinson_variance_feature
     kwargs:
       lag: 1
-  - function: create_parkinson_variance
+  - function: create_parkinson_variance_feature
     kwargs:
       lag: 5
-  - function: create_parkinson_variance_rolling_mean
+  - function: create_parkinson_variance_rolling_mean_feature
     kwargs:
       window_size: 20
       lag: 1
-  - function: create_parkinson_volatility
+  - function: create_parkinson_regime_feature
+    kwargs:
+      short_span: 5
+      long_span: 20
+  - function: create_parkinson_regime_feature
+    kwargs:
+      short_span: 10
+      long_span: 60
+  - function: create_parkinson_regime_feature
+    kwargs:
+      short_span: 20
+      long_span: 60
+  - function: create_parkinson_volatility_feature
     kwargs:
       window_size: 5
       lag: 1
-  - function: create_parkinson_volatility
+  - function: create_parkinson_volatility_feature
     kwargs:
       window_size: 20
       lag: 1
 
 
   # Rogers-Satchell Volatility
-  - function: create_rogers_satchell_variance
+  - function: create_rogers_satchell_variance_feature
     kwargs:
       lag: 1
-  - function: create_rogers_satchell_variance
+  - function: create_rogers_satchell_variance_feature
     kwargs:
       lag: 5
-  - function: create_rogers_satchell_variance_rolling_mean
+  - function: create_rogers_satchell_variance_rolling_mean_feature
     kwargs:
       window_size: 20
       lag: 1
-  - function: create_rogers_satchell_volatility
+  - function: create_rogers_satchell_regime_feature
+    kwargs:
+      short_span: 5
+      long_span: 20
+  - function: create_rogers_satchell_regime_feature
+    kwargs:
+      short_span: 10
+      long_span: 60
+  - function: create_rogers_satchell_regime_feature
+    kwargs:
+      short_span: 20
+      long_span: 60
+  - function: create_rogers_satchell_volatility_feature
     kwargs:
       window_size: 5
       lag: 1
-  - function: create_rogers_satchell_volatility
+  - function: create_rogers_satchell_volatility_feature
     kwargs:
       window_size: 20
       lag: 1
 
   # Yang-Zhang Volatility
-  - function: create_yang_zhang_variance
+  - function: create_yang_zhang_variance_feature
     kwargs:
       lag: 1
-  - function: create_yang_zhang_variance_rolling_mean
-    kwargs:
-      lag: 1
-      window_size: 5
-  - function: create_yang_zhang_variance_rolling_mean
-    kwargs:
-      lag: 1
-      window_size: 20
-  - function: create_yang_zhang_volatility
+  - function: create_yang_zhang_variance_rolling_mean_feature
     kwargs:
       lag: 1
       window_size: 5
-  - function: create_yang_zhang_volatility
+  - function: create_yang_zhang_variance_rolling_mean_feature
     kwargs:
       lag: 1
       window_size: 20
-  - function: create_yang_zhang_volatility
+  - function: create_yang_zhang_regime_feature
+    kwargs:
+      short_span: 5
+      long_span: 20
+  - function: create_yang_zhang_regime_feature
+    kwargs:
+      short_span: 10
+      long_span: 60
+  - function: create_yang_zhang_regime_feature
+    kwargs:
+      short_span: 20
+      long_span: 60
+  - function: create_yang_zhang_volatility_feature
+    kwargs:
+      lag: 1
+      window_size: 5
+  - function: create_yang_zhang_volatility_feature
+    kwargs:
+      lag: 1
+      window_size: 20
+  - function: create_yang_zhang_volatility_feature
     kwargs:
       lag: 1
       window_size: 60
@@ -281,18 +329,53 @@ lr_features:
   - sharpe_20
   - gk_variance_mean_5_lag_1
   - gk_variance_mean_20_lag_1
+  - gk_regime_5_20
+  - gk_regime_10_60
+  - gk_regime_20_60
+  - parkinson_regime_5_20
+  - parkinson_regime_10_60
+  - parkinson_regime_20_60
   - parkinson_volatility_5_lag_1
   - parkinson_volatility_20_lag_1
+  - parkinson_vol_of_vol_5_lag_1
+  - parkinson_vol_of_vol_20_lag_1
+  - rs_regime_5_20
+  - rs_regime_10_60
+  - rs_regime_20_60
   - rs_volatility_5_lag_1
   - rs_volatility_20_lag_1
+  - rs_vol_of_vol_5_lag_1
+  - rs_vol_of_vol_20_lag_1
+  - yz_regime_5_20
+  - yz_regime_10_60
+  - yz_regime_20_60
   - yz_volatility_5_lag_1
   - yz_volatility_20_lag_1
   - yz_volatility_60_lag_1
+  - yz_vol_of_vol_5_lag_1
+  - yz_vol_of_vol_20_lag_1
+  - yz_vol_of_vol_60_lag_1
   - yz_volatility_ratio_5_20
   - yz_volatility_ratio_20_60
   - day_of_week 
   - month
   - market_movement
+  - spy_lag_return_1
+  - spy_lag_return_5
+  - spy_lag_return_20
+  - spy_volatility_20
+  - spy_drawdown_252
+  - spy_sma_ratio_50
+  - spy_sma_ratio_200
+  - spy_return_zscore_252
+  - vix_level
+  - vix_return_lag_1
+  - vix_return_lag_5
+  - vix_return_lag_20
+  - vix_SMA_10
+  - vix_SMA_20
+  - vix_SMA_60
+  - vix_percentile_252
   
 
 xgboost_features:
@@ -346,26 +429,61 @@ xgboost_features:
   - momentum_10
   - gk_variance_lag_1
   - gk_variance_lag_5
+  - gk_regime_5_20
+  - gk_regime_10_60
+  - gk_regime_20_60
   - parkinson_variance_lag_1
   - parkinson_variance_lag_5
+  - parkinson_regime_5_20
+  - parkinson_regime_10_60
+  - parkinson_regime_20_60
   - rogers_satchell_variance_lag_1
   - rogers_satchell_variance_lag_5
+  - rs_regime_5_20
+  - rs_regime_10_60
+  - rs_regime_20_60
   - gk_variance_mean_5_lag_1
   - gk_variance_mean_20_lag_1
   - parkinson_volatility_5_lag_1
   - parkinson_volatility_20_lag_1
+  - parkinson_vol_of_vol_5_lag_1
+  - parkinson_vol_of_vol_20_lag_1
   - rs_volatility_5_lag_1
   - rs_volatility_20_lag_1
+  - rs_vol_of_vol_5_lag_1
+  - rs_vol_of_vol_20_lag_1
   - yz_variance_lag_1
+  - yz_regime_5_20
+  - yz_regime_10_60
+  - yz_regime_20_60
   - yz_volatility_5_lag_1
   - yz_volatility_20_lag_1
   - yz_volatility_60_lag_1
+  - yz_vol_of_vol_5_lag_1
+  - yz_vol_of_vol_20_lag_1
+  - yz_vol_of_vol_60_lag_1
   - yz_volatility_ratio_5_20
   - yz_volatility_ratio_12_26
   - yz_volatility_ratio_20_60
   - day_of_week
   - month
   - market_movement
+  - spy_lag_return_1
+  - spy_lag_return_5
+  - spy_lag_return_20
+  - spy_volatility_20
+  - spy_drawdown_252
+  - spy_sma_ratio_50
+  - spy_sma_ratio_200
+  - spy_return_zscore_252
+  - vix_level
+  - vix_return_lag_1
+  - vix_return_lag_5
+  - vix_return_lag_20
+  - vix_SMA_10
+  - vix_SMA_20
+  - vix_SMA_60
+  - vix_percentile_252
 
 
 mlp_features:
@@ -399,13 +517,128 @@ mlp_features:
   - yz_volatility_5_lag_1
   - yz_volatility_20_lag_1
   - yz_volatility_60_lag_1
+  - yz_vol_of_vol_5_lag_1
+  - yz_vol_of_vol_20_lag_1
+  - yz_vol_of_vol_60_lag_1
+  - parkinson_regime_5_20
+  - parkinson_regime_10_60
+  - parkinson_regime_20_60
   - parkinson_volatility_5_lag_1
+  - parkinson_vol_of_vol_5_lag_1
+  - rs_regime_5_20
+  - rs_regime_10_60
+  - rs_regime_20_60
   - rs_volatility_5_lag_1
+  - rs_vol_of_vol_5_lag_1
+  - yz_regime_5_20
+  - yz_regime_10_60
+  - yz_regime_20_60
   - yz_volatility_ratio_5_20
   - yz_volatility_ratio_20_60
   - gk_variance_mean_20_lag_1
+  - gk_regime_5_20
+  - gk_regime_10_60
+  - gk_regime_20_60
   - parkinson_variance_mean_20_lag_1
   - rs_variance_mean_20_lag_1
   - day_of_week 
   - month
   - market_movement
+  - spy_lag_return_1
+  - spy_lag_return_5
+  - spy_lag_return_20
+  - spy_volatility_20
+  - spy_drawdown_252
+  - spy_sma_ratio_50
+  - spy_sma_ratio_200
+  - spy_return_zscore_252
+  - vix_level
+  - vix_return_lag_1
+  - vix_return_lag_5
+  - vix_return_lag_20
+  - vix_SMA_10
+  - vix_SMA_20
+  - vix_SMA_60
+  - vix_percentile_252
+
+
+  # SPY Features
+spy_features_config:
+  - function: create_spy_lag_return_feature
+    kwargs:
+      lag: 1
+      original_colname: return_lag_1
+  - function: create_spy_lag_return_feature
+    kwargs:
+      lag: 5
+      original_colname: return_lag_5
+  - function: create_spy_lag_return_feature
+    kwargs:
+      lag: 20
+      original_colname: return_lag_20
+  - function: create_spy_volatility_feature
+    kwargs:
+      window_size: 20
+      original_colname: simple_return_volatility_20
+  - function: create_spy_drawdown_feature
+    kwargs:
+      window_size: 252
+      original_colname: drawdown_252
+  - function: create_spy_sma_ratio_feature
+    kwargs:
+      window_size: 50
+  - function: create_spy_sma_ratio_feature
+    kwargs:
+      window_size: 200
+  - function: create_spy_return_zscore_feature
+    kwargs:
+      window_size: 252
+  
+
+  # VIX Features
+vix_features_config:
+  - function: create_vix_lag_return_feature
+    kwargs:
+      lag: 1
+      original_colname: return_lag_1
+  - function: create_vix_lag_return_feature
+    kwargs:
+      lag: 5
+      original_colname: return_lag_5
+  - function: create_vix_lag_return_feature
+    kwargs:
+      lag: 20
+      original_colname: return_lag_20
+  - function: create_vix_sma_feature
+    kwargs:
+      window_size: 10
+      original_colname: SMA_10
+  - function: create_vix_sma_feature
+    kwargs:
+      window_size: 20
+      original_colname: SMA_20
+  - function: create_vix_sma_feature
+    kwargs:
+      window_size: 60
+      original_colname: SMA_60
+  - function: create_vix_percentile_feature
+    kwargs:
+      window_size: 252
+  - function: create_vix_level_feature
+    kwargs: {}
+
+
+spy_columns_to_drop:
+  - Ticker
+  - Open
+  - High
+  - Low
+  - Close
+  - Volume
+
+vix_columns_to_drop:
+  - Ticker
+  - Open
+  - High
+  - Low
+  - Volume

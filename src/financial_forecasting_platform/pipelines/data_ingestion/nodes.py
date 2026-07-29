@@ -41,3 +41,41 @@ def download_ohlcv_data(tickers: list[str], start_date: str, end_date: str
     df = df.sort_values(["Ticker", "Date"])
 
     return df
+
+def download_market_data(start_date: str, end_date: str, tickers: list[str] 
+                         | None = None) -> pd.DataFrame:
+    """Downloads data from yfinance from general markets."""
+    if tickers is None:
+        tickers = ["SPY", "^VIX"]
+    df = yf.download(
+    tickers,
+    start=start_date,
+    end=end_date
+    )
+    df = (
+        df
+        .stack(level="Ticker", future_stack=True)
+        .reset_index()
+    )
+
+    # Reorder columns
+    df = df[
+        [
+            "Date",
+            "Ticker",
+            "Open",
+            "High",
+            "Low",
+            "Close",
+            "Volume",
+        ]
+    ]
+    return df
+
+def create_spy_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Retrieves SPY data from market_data"""
+    return df[df["Ticker"] == "SPY"]
+
+def create_vix_data(df: pd.DataFrame) -> pd.DataFrame:
+    """Retrieves VIX data from market_data"""
+    return df[df["Ticker"] == "^VIX"]

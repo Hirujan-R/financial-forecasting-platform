@@ -5,77 +5,215 @@ stages:
     deps:
     - path: conf/base/catalog.yml
       hash: md5
-      md5: dffbeb92bf7cfcd20d748f8ded3d630e
-      size: 481
+      md5: 703a3e8d7f50f5fa76b46a94a70fc006
+      size: 2031
     - path: conf/base/parameters_data_ingestion.yml
       hash: md5
-      md5: 6696c31f3b93cb726afebc68a2dbb135
-      size: 114
+      md5: 960e9b88824c54deb37de2f92a83a031
+      size: 148
     - path: src/financial_forecasting_platform/pipelines/data_ingestion
       hash: md5
-      md5: 506bc9f0c5b9abd29996ff86de7a7ce0.dir
-      size: 5043
-      nfiles: 6
+      md5: 01389ae6bca04f8cacdefb71a38c5dea.dir
+      size: 13525
+      nfiles: 9
     outs:
     - path: data/01_raw/raw_data.parquet
       hash: md5
-      md5: dffaadb65cce86c8c186151236759e34
-      size: 1140214
+      md5: 5e951f1b1f2ead2f8c8f60af55d1f795
+      size: 1147369
+    - path: data/01_raw/raw_spy_data.parquet
+      hash: md5
+      md5: 44810de35e0d3ff51367ea75a6adc374
+      size: 313110
+    - path: data/01_raw/raw_vix_data.parquet
+      hash: md5
+      md5: 79510856753464dead813c0ee47eb217
+      size: 162736
   data_validation:
     cmd: kedro run --pipeline=data_validation
     deps:
     - path: conf/base/catalog.yml
       hash: md5
-      md5: dffbeb92bf7cfcd20d748f8ded3d630e
-      size: 481
+      md5: 703a3e8d7f50f5fa76b46a94a70fc006
+      size: 2031
     - path: conf/base/parameters_data_validation.yml
       hash: md5
       md5: 2a17a259c2218a2a461e322d67f9f6db
       size: 858
     - path: data/01_raw/raw_data.parquet
       hash: md5
-      md5: dffaadb65cce86c8c186151236759e34
-      size: 1140214
+      md5: 5e951f1b1f2ead2f8c8f60af55d1f795
+      size: 1147369
+    - path: data/01_raw/raw_spy_data.parquet
+      hash: md5
+      md5: 44810de35e0d3ff51367ea75a6adc374
+      size: 313110
+    - path: data/01_raw/raw_vix_data.parquet
+      hash: md5
+      md5: 79510856753464dead813c0ee47eb217
+      size: 162736
     - path: src/financial_forecasting_platform/pipelines/data_validation
       hash: md5
-      md5: 0c2f441eeacd81697a7e7018696b140a.dir
-      size: 28569
-      nfiles: 6
+      md5: 0f927d47e5f94060690abf3f5a5b02c0.dir
+      size: 41900
+      nfiles: 9
     outs:
     - path: data/02_validated_raw/validated_raw_data.parquet
       hash: md5
-      md5: b38b377603deb838993d5f27a75ed176
-      size: 1140227
+      md5: 5e951f1b1f2ead2f8c8f60af55d1f795
+      size: 1147369
+    - path: data/02_validated_raw/validated_spy_data.parquet
+      hash: md5
+      md5: 44810de35e0d3ff51367ea75a6adc374
+      size: 313110
+    - path: data/02_validated_raw/validated_vix_data.parquet
+      hash: md5
+      md5: 79510856753464dead813c0ee47eb217
+      size: 162736
   feature_engineering:
     cmd: kedro run --pipeline=feature_engineering
     deps:
     - path: conf/base/catalog.yml
       hash: md5
-      md5: dffbeb92bf7cfcd20d748f8ded3d630e
-      size: 481
+      md5: 703a3e8d7f50f5fa76b46a94a70fc006
+      size: 2031
+    - path: conf/base/parameters_feature_engineering.yml
+      hash: md5
+      md5: ef1d14ae3190369b0a68c5781e8df75e
+      size: 14772
     - path: data/02_validated_raw/validated_raw_data.parquet
       hash: md5
-      md5: b38b377603deb838993d5f27a75ed176
-      size: 1140227
+      md5: 5e951f1b1f2ead2f8c8f60af55d1f795
+      size: 1147369
+    - path: data/02_validated_raw/validated_spy_data.parquet
+      hash: md5
+      md5: 44810de35e0d3ff51367ea75a6adc374
+      size: 313110
+    - path: data/02_validated_raw/validated_vix_data.parquet
+      hash: md5
+      md5: 79510856753464dead813c0ee47eb217
+      size: 162736
     - path: src/financial_forecasting_platform/features/engineering.py
       hash: md5
-      md5: a66ed8e9831bae9f3a30150afe65df97
-      size: 47688
+      md5: 8c832156c021af552018d2672c766937
+      size: 61564
     - path: src/financial_forecasting_platform/pipelines/feature_engineering
       hash: md5
-      md5: 1d6e1908b6c52fe1483234e38fda9641.dir
-      size: 13268
-      nfiles: 6
+      md5: 0db0b63daf94e0f60377879a912541a9.dir
+      size: 22408
+      nfiles: 9
     outs:
     - path: data/03_feature/lr_features.parquet
       hash: md5
-      md5: 40a4b3b5eca2e03f17ddb1c5935389dc
-      size: 7129106
+      md5: 606963737a4eae9b53d401f9e7e263e5
+      size: 12168218
     - path: data/03_feature/mlp_features.parquet
       hash: md5
-      md5: 8ee2aacde824692b06cafff9021dab44
-      size: 7387662
+      md5: e49137d1a9593e19543e93fa7354b292
+      size: 12010730
     - path: data/03_feature/xgboost_features.parquet
       hash: md5
-      md5: bc4552307f9557a3045b61688e160a28
-      size: 13090637
+      md5: 68d92b76d2c6c42775176ab0ae2f99c9
+      size: 18130684
+  train_test_split:
+    cmd: kedro run --pipeline=data_split
+    deps:
+    - path: conf/base/catalog.yml
+      hash: md5
+      md5: 703a3e8d7f50f5fa76b46a94a70fc006
+      size: 2031
+    - path: conf/base/parameters_data_split.yml
+      hash: md5
+      md5: 32ab96af29430fd4b5297173fd6124ad
+      size: 59
+    - path: data/03_feature/lr_features.parquet
+      hash: md5
+      md5: 606963737a4eae9b53d401f9e7e263e5
+      size: 12168218
+    - path: data/03_feature/mlp_features.parquet
+      hash: md5
+      md5: e49137d1a9593e19543e93fa7354b292
+      size: 12010730
+    - path: data/03_feature/xgboost_features.parquet
+      hash: md5
+      md5: 68d92b76d2c6c42775176ab0ae2f99c9
+      size: 18130684
+    - path: src/financial_forecasting_platform/pipelines/data_split
+      hash: md5
+      md5: 36483830e77c2094792f38d80be5c0fd.dir
+      size: 5175
+      nfiles: 6
+    outs:
+    - path: data/04_model_input/lr_X.parquet
+      hash: md5
+      md5: 7dde7d4c660261e192d3cc8997f19a17
+      size: 11568603
+    - path: data/04_model_input/lr_X_test.parquet
+      hash: md5
+      md5: 9ced1d62b543f60ef9b682665fbb2306
+      size: 2265297
+    - path: data/04_model_input/lr_X_train.parquet
+      hash: md5
+      md5: b327158c178bf7e4e9e8c7bbe98159e6
+      size: 9081451
+    - path: data/04_model_input/lr_y.parquet
+      hash: md5
+      md5: 704d0d5e66d6a0e8173dd4c354b492a6
+      size: 69087
+    - path: data/04_model_input/lr_y_test.parquet
+      hash: md5
+      md5: a55d50e1d5d42e209af1c8648ab52869
+      size: 14697
+    - path: data/04_model_input/lr_y_train.parquet
+      hash: md5
+      md5: 870c7f8a941f6a800587d300911459a0
+      size: 50921
+  outlier_handling:
+    cmd: kedro run --pipeline=outlier_handling
+    deps:
+    - path: conf/base/catalog.yml
+      hash: md5
+      md5: 703a3e8d7f50f5fa76b46a94a70fc006
+      size: 2031
+    - path: conf/base/parameters_outlier_handling.yml
+      hash: md5
+      md5: 8e2a2fba99b6123efb807b811711d02f
+      size: 1152
+    - path: data/04_model_input/lr_X.parquet
+      hash: md5
+      md5: 7dde7d4c660261e192d3cc8997f19a17
+      size: 11568603
+    - path: data/04_model_input/lr_X_test.parquet
+      hash: md5
+      md5: 9ced1d62b543f60ef9b682665fbb2306
+      size: 2265297
+    - path: data/04_model_input/lr_X_train.parquet
+      hash: md5
+      md5: b327158c178bf7e4e9e8c7bbe98159e6
+      size: 9081451
+    - path: data/04_model_input/lr_y.parquet
+      hash: md5
+      md5: 704d0d5e66d6a0e8173dd4c354b492a6
+      size: 69087
+    - path: data/04_model_input/lr_y_test.parquet
+      hash: md5
+      md5: a55d50e1d5d42e209af1c8648ab52869
+      size: 14697
+    - path: data/04_model_input/lr_y_train.parquet
+      hash: md5
+      md5: 870c7f8a941f6a800587d300911459a0
+      size: 50921
+    - path: src/financial_forecasting_platform/pipelines/outlier_handling
+      hash: md5
+      md5: c61014dcf8312a5daec34790fd4b7c73.dir
+      size: 7569
+      nfiles: 6
+    outs:
+    - path: data/04_model_input/outlier_clipped_lr_X_test.parquet
+      hash: md5
+      md5: d27c7c3f042c5a0a6380c64cf7f37bda
+      size: 2242414
+    - path: data/04_model_input/outlier_clipped_lr_X_train.parquet
+      hash: md5
+      md5: 2c0f7112f0b2f92f16e9553fcf3a68cc
+      size: 9012809

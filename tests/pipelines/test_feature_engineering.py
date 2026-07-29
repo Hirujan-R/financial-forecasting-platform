@@ -170,33 +170,41 @@ class TestFeatureEngineeringPipeline:
         result = create_pipeline()
         assert isinstance(result, Pipeline)
 
-    def test_pipeline_has_four_nodes(self):
+    def test_pipeline_has_seven_nodes(self):
         pipeline = create_pipeline()
-        assert len(pipeline.nodes) == 4
+        assert len(pipeline.nodes) == 7
 
     def test_pipeline_node_names(self):
         pipeline = create_pipeline()
         node_names = {n.name for n in pipeline.nodes}
         expected_names = {
-            "create_all_features_node",
+            "create_stock_features_node",
+            "create_spy_features_node",
+            "create_vix_features_node",
+            "merge_data_node",
             "lr_feature_engineering_node",
             "xgboost_feature_engineering_node",
             "mlp_feature_engineering_node",
         }
         assert node_names == expected_names
 
-    def test_pipeline_inputs_validated_raw_data(self):
+    def test_pipeline_inputs(self):
         pipeline = create_pipeline()
         input_datasets = set()
         for n in pipeline.nodes:
             input_datasets.update(n.inputs)
         assert "validated_raw_data" in input_datasets
+        assert "validated_spy_data" in input_datasets
+        assert "validated_vix_data" in input_datasets
 
     def test_pipeline_outputs(self):
         pipeline = create_pipeline()
         output_datasets = set()
         for n in pipeline.nodes:
             output_datasets.update(n.outputs)
+        assert "stock_features" in output_datasets
+        assert "spy_features" in output_datasets
+        assert "vix_features" in output_datasets
         assert "all_features" in output_datasets
         assert "lr_features" in output_datasets
         assert "xgboost_features" in output_datasets

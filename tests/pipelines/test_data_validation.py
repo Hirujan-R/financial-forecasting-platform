@@ -288,22 +288,17 @@ class TestDataValidationPipeline:
         result = create_pipeline()
         assert isinstance(result, Pipeline)
 
-    def test_pipeline_has_eight_nodes(self):
+    def test_pipeline_has_three_nodes(self):
         pipeline = create_pipeline()
-        assert len(pipeline.nodes) == 8
+        assert len(pipeline.nodes) == 3
 
     def test_pipeline_node_names(self):
         pipeline = create_pipeline()
         node_names = {n.name for n in pipeline.nodes}
         expected_names = {
-            "empty_data_validation_node",
-            "column_existence_validation_node",
-            "missing_data_validation_node",
-            "column_type_validation_node",
-            "duplicate_data_validation_node" if "duplicate_data_validation_node" in node_names else "duplicate_validation_node",
-            "financial_consistency_validation_node",
-            "date_validation_node",
-            "ticker_validation_node",
+            "stock_data_validation",
+            "spy_data_validation",
+            "vix_data_validation",
         }
         assert node_names == expected_names
 

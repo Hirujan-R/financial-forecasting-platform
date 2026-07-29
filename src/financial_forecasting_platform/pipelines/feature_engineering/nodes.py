@@ -84,3 +84,9 @@ def mlp_feature_engineering(df: pd.DataFrame, features: list | None = None) -> p
                     "relative_volume_5", "relative_volume_20", "drawdown_20", 
                     "rolling_window_mdd_20", "sharpe_20", "day_of_week", "month", "market_movement"]
     return df[features]
+
+def merge_dataframes(stock_df: pd.DataFrame, spy_df: pd.DataFrame, vix_df: pd.DataFrame) -> pd.DataFrame:
+    merged_data = stock_df.merge(spy_df, on="Date", how="left").merge(vix_df, on="Date", how="left")
+    if 'Repaired?' in merged_data.columns:
+        merged_data = merged_data.drop(columns=['Repaired?'])
+    return merged_data

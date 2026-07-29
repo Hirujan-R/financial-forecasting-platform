@@ -53,22 +53,22 @@ class TestRegisterPipelines:
     def test_default_pipeline_combines_all(self):
         pipelines = register_pipelines()
         default = pipelines["__default__"]
-        data_ingestion = pipelines["data_ingestion"]
-        data_validation = pipelines["data_validation"]
-        feature_engineering = pipelines["feature_engineering"]
 
         default_node_names = {n.name for n in default.nodes}
-        expected_node_names = (
-            {n.name for n in data_ingestion.nodes}
-            | {n.name for n in data_validation.nodes}
-            | {n.name for n in feature_engineering.nodes}
-        )
+        expected_node_names = set()
+        for name, pipe in pipelines.items():
+            if name != "__default__":
+                expected_node_names |= {n.name for n in pipe.nodes}
+
         assert default_node_names == expected_node_names
 
-    def test_default_pipeline_has_thirteen_nodes(self):
+    def test_default_pipeline_node_count(self):
         pipelines = register_pipelines()
-        assert len(pipelines["__default__"].nodes) == 13
+        expected_count = sum(
+            len(pipe.nodes) for name, pipe in pipelines.items() if name != "__default__"
+        )
+        assert len(pipelines["__default__"].nodes) == expected_count
 
     def test_total_pipeline_count(self):
         pipelines = register_pipelines()
-        assert len(pipelines) == 4
+        assert len(pipelines) == 7

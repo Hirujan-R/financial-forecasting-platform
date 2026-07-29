@@ -1,0 +1,3 @@
+target_variable: market_movement
+
+training_proportion: 0.8

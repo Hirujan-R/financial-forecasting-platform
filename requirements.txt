@@ -11,3 +11,9 @@ pandas
 dvc[s3]
 scikit-learn
 xgboost
+shap
+lightgbm
+catboost
+mlflow
+kedro-mlflow
+boto3

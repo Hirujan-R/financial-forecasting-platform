@@ -3,11 +3,11 @@ from pandas.api.types import is_datetime64_any_dtype as is_datetime, \
     is_integer_dtype as is_integer, \
     is_numeric_dtype as is_numeric, is_string_dtype as is_string
 
+
 # Default values for parameters
 DEFAULT_REQUIRED_COLUMNS = (
     "Date", "Ticker", "Open", "Close", "High", "Low", "Volume"
 )
-
 DEFAULT_COLUMN_TYPES = ("datetime", "string", "numeric", "numeric",
                         "numeric", "numeric", "integer")
 TYPE_VALIDATORS = {
@@ -16,7 +16,6 @@ TYPE_VALIDATORS = {
     "numeric": is_numeric,
     "string": is_string,
 }
-
 DEFAULT_ERROR_MESSAGES = ("Invalid 'Date' column type. 'Date' column should be in DateTime format.",
     "Invalid 'Ticker' column type. 'Ticker' column must contain string values.",
     "Invalid 'Open' column type. 'Open' column must contain numeric floating-point values.",
@@ -36,6 +35,7 @@ def empty_data_validation(df: pd.DataFrame) -> pd.DataFrame:
         raise ValueError("Data is empty. Data must not be empty.")
     return df
 
+
 def column_existence_validation(df: pd.DataFrame, required_columns: tuple | None = None) \
                                 -> pd.DataFrame:
     """Raises an error if df doesn't contain all the required columns."""
@@ -48,6 +48,7 @@ def column_existence_validation(df: pd.DataFrame, required_columns: tuple | None
             f"Missing required columns: {sorted(missing)}"
         )
     return df
+
 
 def missing_data_validation(df: pd.DataFrame, required_columns: tuple | None = None) \
                             -> pd.DataFrame:  
@@ -160,6 +161,8 @@ def financial_consistency_validation(df: pd.DataFrame, ohlcv_columns: tuple | No
 
 
     # Date Validation
+
+
 def date_validation(df: pd.DataFrame, start_date: str = None, end_date: str = None, 
                     row_id: tuple | None = None, max_gap_days: int = 10) -> pd.DataFrame:
     """Raises error if invalid date is selected."""
@@ -231,3 +234,21 @@ def ticker_validation(df: pd.DataFrame, tickers: tuple | None = None) \
                 \nTickers must be one of the following values: {tickers}"
         )
     return df
+
+def data_validation(df: pd.DataFrame, required_columns: tuple | None = None,
+                    column_types: tuple | None = None, error_messages: tuple | None = None,
+                    row_id: tuple | None = None, ohlcv_columns: tuple | None = None, 
+                    start_date: str = None, end_date: str = None, max_gap_days: int = 10, 
+                    tickers: tuple | None = None):
+    
+    df = empty_data_validation(df)
+    df = column_existence_validation(df, required_columns)
+    df = missing_data_validation(df, required_columns)
+    df = column_type_validation(df, required_columns, column_types, error_messages)
+    df = duplicate_validation(df, row_id)
+    df = financial_consistency_validation(df, ohlcv_columns)
+    df = date_validation(df, start_date, end_date, row_id, max_gap_days)
+    df = ticker_validation(df, tickers)
+
+    return df
+

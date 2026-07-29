@@ -1,0 +1,45 @@
+onehot_chr_features:
+  - Ticker
+
+ordinal_chr_features:
+  - day_of_week
+
+skewed_features:
+  - log_return_volatility_5
+  - log_return_volatility_10
+  - log_return_volatility_20
+  - bollinger_upper_distance_20
+  - bollinger_lower_distance_20
+  - bollinger_bandwidth_20
+  - range_percentage
+  - upper_shadow_pct
+  - lower_shadow_pct
+  - relative_volume_5
+  - relative_volume_20
+  - drawdown_20
+  - gk_variance_mean_5_lag_1
+  - gk_variance_mean_20_lag_1
+  - parkinson_volatility_5_lag_1
+  - parkinson_volatility_20_lag_1
+  - rs_volatility_5_lag_1
+  - rs_volatility_20_lag_1
+  - yz_volatility_5_lag_1
+  - yz_volatility_20_lag_1
+  - yz_volatility_60_lag_1
+        
+
+lr_param_grid:
+  logreg__C:
+    - 0.001
+    - 0.01
+    - 0.1
+    - 1.0
+    - 10.0
+  logreg__l1_ratio:
+    - 0
+    - 0.25
+    - 0.5
+    - 0.75
+    - 1
+
+lr_training_run_name: lr_model

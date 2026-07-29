@@ -6,6 +6,9 @@ from unittest.mock import patch, MagicMock
 
 from financial_forecasting_platform.pipelines.data_ingestion.nodes import (
     download_ohlcv_data,
+    download_market_data,
+    create_spy_data,
+    create_vix_data,
 )
 from financial_forecasting_platform.pipelines.data_ingestion.pipeline import (
     create_pipeline,
@@ -128,6 +131,66 @@ class TestDownloadOhlcvData:
         assert tickers == ["aapl"]
 
 
+class TestDownloadMarketData:
+    @patch("financial_forecasting_platform.pipelines.data_ingestion.nodes.yf.download")
+    def test_default_tickers(self, mock_download):
+        dates = pd.date_range("2024-01-01", periods=2, freq="B")
+        mock_download.return_value = _make_yf_response(["SPY", "^VIX"], dates)
+
+        result = download_market_data("2024-01-01", "2024-01-05")
+
+        assert isinstance(result, pd.DataFrame)
+        mock_download.assert_called_once_with(
+            ["SPY", "^VIX"],
+            start="2024-01-01",
+            end="2024-01-05"
+        )
+        assert list(result.columns) == ["Date", "Ticker", "Open", "High", "Low", "Close", "Volume"]
+        assert set(result["Ticker"].unique()) == {"SPY", "^VIX"}
+
+    @patch("financial_forecasting_platform.pipelines.data_ingestion.nodes.yf.download")
+    def test_custom_tickers(self, mock_download):
+        dates = pd.date_range("2024-01-01", periods=2, freq="B")
+        mock_download.return_value = _make_yf_response(["QQQ"], dates)
+
+        result = download_market_data("2024-01-01", "2024-01-05", tickers=["QQQ"])
+
+        assert isinstance(result, pd.DataFrame)
+        mock_download.assert_called_once_with(
+            ["QQQ"],
+            start="2024-01-01",
+            end="2024-01-05"
+        )
+
+
+class TestCreateSpyData:
+    def test_filters_spy_ticker(self):
+        df = pd.DataFrame(
+            {
+                "Date": ["2024-01-01", "2024-01-01"],
+                "Ticker": ["SPY", "^VIX"],
+                "Close": [500.0, 15.0],
+            }
+        )
+        spy_df = create_spy_data(df)
+        assert len(spy_df) == 1
+        assert (spy_df["Ticker"] == "SPY").all()
+
+
+class TestCreateVixData:
+    def test_filters_vix_ticker(self):
+        df = pd.DataFrame(
+            {
+                "Date": ["2024-01-01", "2024-01-01"],
+                "Ticker": ["SPY", "^VIX"],
+                "Close": [500.0, 15.0],
+            }
+        )
+        vix_df = create_vix_data(df)
+        assert len(vix_df) == 1
+        assert (vix_df["Ticker"] == "^VIX").all()
+
+
 class TestDataIngestionPipeline:
     def test_returns_pipeline(self):
         result = create_pipeline()
@@ -136,7 +199,10 @@ class TestDataIngestionPipeline:
     def test_pipeline_node_name(self):
         pipeline = create_pipeline()
         node_names = [n.name for n in pipeline.nodes]
-        assert "data_ingestion_node" in node_names
+        assert "download_stock_data_node" in node_names
+        assert "download_market_data_node" in node_names
+        assert "create_spy_data_node" in node_names
+        assert "create_vix_data_node" in node_names
 
     def test_pipeline_outputs_raw_data(self):
         pipeline = create_pipeline()
@@ -154,6 +220,6 @@ class TestDataIngestionPipeline:
         assert "params:raw_data_start_date" in input_datasets
         assert "params:raw_data_end_date" in input_datasets
 
-    def test_pipeline_has_one_node(self):
+    def test_pipeline_has_four_nodes(self):
         pipeline = create_pipeline()
-        assert len(pipeline.nodes) == 1
+        assert len(pipeline.nodes) == 4

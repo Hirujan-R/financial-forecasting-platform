@@ -7,23 +7,63 @@ stages:
       - conf/base/parameters_data_ingestion.yml
     outs:
       - data/01_raw/raw_data.parquet
+      - data/01_raw/raw_spy_data.parquet
+      - data/01_raw/raw_vix_data.parquet
   data_validation:
     cmd: kedro run --pipeline=data_validation
     deps:
       - src/financial_forecasting_platform/pipelines/data_validation
       - data/01_raw/raw_data.parquet
+      - data/01_raw/raw_spy_data.parquet
+      - data/01_raw/raw_vix_data.parquet
       - conf/base/catalog.yml
       - conf/base/parameters_data_validation.yml
     outs:
       - data/02_validated_raw/validated_raw_data.parquet
+      - data/02_validated_raw/validated_spy_data.parquet
+      - data/02_validated_raw/validated_vix_data.parquet
   feature_engineering:
     cmd: kedro run --pipeline=feature_engineering
     deps:
       - src/financial_forecasting_platform/features/engineering.py
       - src/financial_forecasting_platform/pipelines/feature_engineering
       - data/02_validated_raw/validated_raw_data.parquet
+      - data/02_validated_raw/validated_spy_data.parquet
+      - data/02_validated_raw/validated_vix_data.parquet
       - conf/base/catalog.yml
+      - conf/base/parameters_feature_engineering.yml
     outs:
       - data/03_feature/lr_features.parquet
       - data/03_feature/xgboost_features.parquet
       - data/03_feature/mlp_features.parquet
+  train_test_split:
+    cmd: kedro run --pipeline=data_split
+    deps:
+      - data/03_feature/lr_features.parquet
+      - data/03_feature/xgboost_features.parquet
+      - data/03_feature/mlp_features.parquet
+      - src/financial_forecasting_platform/pipelines/data_split
+      - conf/base/catalog.yml
+      - conf/base/parameters_data_split.yml
+    outs:
+      - data/04_model_input/lr_X.parquet
+      - data/04_model_input/lr_y.parquet
+      - data/04_model_input/lr_X_train.parquet
+      - data/04_model_input/lr_X_test.parquet
+      - data/04_model_input/lr_y_train.parquet
+      - data/04_model_input/lr_y_test.parquet
+  outlier_handling:
+    cmd: kedro run --pipeline=outlier_handling
+    deps:
+      - data/04_model_input/lr_X.parquet
+      - data/04_model_input/lr_y.parquet
+      - data/04_model_input/lr_X_train.parquet
+      - data/04_model_input/lr_X_test.parquet
+      - data/04_model_input/lr_y_train.parquet
+      - data/04_model_input/lr_y_test.parquet
+      - src/financial_forecasting_platform/pipelines/outlier_handling
+      - conf/base/catalog.yml
+      - conf/base/parameters_outlier_handling.yml
+    outs:
+      - data/04_model_input/outlier_clipped_lr_X_train.parquet
+      - data/04_model_input/outlier_clipped_lr_X_test.parquet
