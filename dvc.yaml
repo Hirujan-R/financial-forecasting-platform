@@ -52,6 +52,12 @@ stages:
       - data/04_model_input/lr_X_test.parquet
       - data/04_model_input/lr_y_train.parquet
       - data/04_model_input/lr_y_test.parquet
+      - data/04_model_input/xgb_X.parquet
+      - data/04_model_input/xgb_y.parquet
+      - data/04_model_input/xgb_X_train.parquet
+      - data/04_model_input/xgb_X_test.parquet
+      - data/04_model_input/xgb_y_train.parquet
+      - data/04_model_input/xgb_y_test.parquet
   outlier_handling:
     cmd: kedro run --pipeline=outlier_handling
     deps:

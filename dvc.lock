@@ -5,8 +5,8 @@ stages:
     deps:
     - path: conf/base/catalog.yml
       hash: md5
-      md5: 703a3e8d7f50f5fa76b46a94a70fc006
-      size: 2031
+      md5: de171e5b666b911ea4d22b5da17f8255
+      size: 2823
     - path: conf/base/parameters_data_ingestion.yml
       hash: md5
       md5: 960e9b88824c54deb37de2f92a83a031
@@ -19,12 +19,12 @@ stages:
     outs:
     - path: data/01_raw/raw_data.parquet
       hash: md5
-      md5: 5e951f1b1f2ead2f8c8f60af55d1f795
-      size: 1147369
+      md5: 3985a456810f19aa0c354aaa56efddb7
+      size: 1147332
     - path: data/01_raw/raw_spy_data.parquet
       hash: md5
-      md5: 44810de35e0d3ff51367ea75a6adc374
-      size: 313110
+      md5: 9b3db88239b780503b36728c4730d721
+      size: 313171
     - path: data/01_raw/raw_vix_data.parquet
       hash: md5
       md5: 79510856753464dead813c0ee47eb217
@@ -34,20 +34,20 @@ stages:
     deps:
     - path: conf/base/catalog.yml
       hash: md5
-      md5: 703a3e8d7f50f5fa76b46a94a70fc006
-      size: 2031
+      md5: de171e5b666b911ea4d22b5da17f8255
+      size: 2823
     - path: conf/base/parameters_data_validation.yml
       hash: md5
       md5: 2a17a259c2218a2a461e322d67f9f6db
       size: 858
     - path: data/01_raw/raw_data.parquet
       hash: md5
-      md5: 5e951f1b1f2ead2f8c8f60af55d1f795
-      size: 1147369
+      md5: 3985a456810f19aa0c354aaa56efddb7
+      size: 1147332
     - path: data/01_raw/raw_spy_data.parquet
       hash: md5
-      md5: 44810de35e0d3ff51367ea75a6adc374
-      size: 313110
+      md5: 9b3db88239b780503b36728c4730d721
+      size: 313171
     - path: data/01_raw/raw_vix_data.parquet
       hash: md5
       md5: 79510856753464dead813c0ee47eb217
@@ -60,12 +60,12 @@ stages:
     outs:
     - path: data/02_validated_raw/validated_raw_data.parquet
       hash: md5
-      md5: 5e951f1b1f2ead2f8c8f60af55d1f795
-      size: 1147369
+      md5: 3985a456810f19aa0c354aaa56efddb7
+      size: 1147332
     - path: data/02_validated_raw/validated_spy_data.parquet
       hash: md5
-      md5: 44810de35e0d3ff51367ea75a6adc374
-      size: 313110
+      md5: 9b3db88239b780503b36728c4730d721
+      size: 313171
     - path: data/02_validated_raw/validated_vix_data.parquet
       hash: md5
       md5: 79510856753464dead813c0ee47eb217
@@ -75,20 +75,20 @@ stages:
     deps:
     - path: conf/base/catalog.yml
       hash: md5
-      md5: 703a3e8d7f50f5fa76b46a94a70fc006
-      size: 2031
+      md5: de171e5b666b911ea4d22b5da17f8255
+      size: 2823
     - path: conf/base/parameters_feature_engineering.yml
       hash: md5
       md5: ef1d14ae3190369b0a68c5781e8df75e
       size: 14772
     - path: data/02_validated_raw/validated_raw_data.parquet
       hash: md5
-      md5: 5e951f1b1f2ead2f8c8f60af55d1f795
-      size: 1147369
+      md5: 3985a456810f19aa0c354aaa56efddb7
+      size: 1147332
     - path: data/02_validated_raw/validated_spy_data.parquet
       hash: md5
-      md5: 44810de35e0d3ff51367ea75a6adc374
-      size: 313110
+      md5: 9b3db88239b780503b36728c4730d721
+      size: 313171
     - path: data/02_validated_raw/validated_vix_data.parquet
       hash: md5
       md5: 79510856753464dead813c0ee47eb217
@@ -105,57 +105,57 @@ stages:
     outs:
     - path: data/03_feature/lr_features.parquet
       hash: md5
-      md5: 606963737a4eae9b53d401f9e7e263e5
-      size: 12168218
+      md5: c68c9f0cff29d39f3a473f7603af6479
+      size: 12168318
     - path: data/03_feature/mlp_features.parquet
       hash: md5
-      md5: e49137d1a9593e19543e93fa7354b292
-      size: 12010730
+      md5: 3b396c7be87fbcabaaf9104d764f4c72
+      size: 12010838
     - path: data/03_feature/xgboost_features.parquet
       hash: md5
-      md5: 68d92b76d2c6c42775176ab0ae2f99c9
-      size: 18130684
+      md5: 6ff5c6d66a34769fcadee7d7fefc20e0
+      size: 18130095
   train_test_split:
     cmd: kedro run --pipeline=data_split
     deps:
     - path: conf/base/catalog.yml
       hash: md5
-      md5: 703a3e8d7f50f5fa76b46a94a70fc006
-      size: 2031
+      md5: de171e5b666b911ea4d22b5da17f8255
+      size: 2823
     - path: conf/base/parameters_data_split.yml
       hash: md5
       md5: 32ab96af29430fd4b5297173fd6124ad
       size: 59
     - path: data/03_feature/lr_features.parquet
       hash: md5
-      md5: 606963737a4eae9b53d401f9e7e263e5
-      size: 12168218
+      md5: c68c9f0cff29d39f3a473f7603af6479
+      size: 12168318
     - path: data/03_feature/mlp_features.parquet
       hash: md5
-      md5: e49137d1a9593e19543e93fa7354b292
-      size: 12010730
+      md5: 3b396c7be87fbcabaaf9104d764f4c72
+      size: 12010838
     - path: data/03_feature/xgboost_features.parquet
       hash: md5
-      md5: 68d92b76d2c6c42775176ab0ae2f99c9
-      size: 18130684
+      md5: 6ff5c6d66a34769fcadee7d7fefc20e0
+      size: 18130095
     - path: src/financial_forecasting_platform/pipelines/data_split
       hash: md5
-      md5: 36483830e77c2094792f38d80be5c0fd.dir
-      size: 5175
-      nfiles: 6
+      md5: db34128601f50236f2207f96521e7641.dir
+      size: 9910
+      nfiles: 9
     outs:
     - path: data/04_model_input/lr_X.parquet
       hash: md5
-      md5: 7dde7d4c660261e192d3cc8997f19a17
-      size: 11568603
+      md5: b1c1389dfa71e007b3c6c636ec0da3d7
+      size: 11568593
     - path: data/04_model_input/lr_X_test.parquet
       hash: md5
-      md5: 9ced1d62b543f60ef9b682665fbb2306
-      size: 2265297
+      md5: ce2f73a0267f80a0cac3e21c53da0327
+      size: 2265281
     - path: data/04_model_input/lr_X_train.parquet
       hash: md5
-      md5: b327158c178bf7e4e9e8c7bbe98159e6
-      size: 9081451
+      md5: 261d6aa11fed7751c9dae03ba2d11701
+      size: 9081421
     - path: data/04_model_input/lr_y.parquet
       hash: md5
       md5: 704d0d5e66d6a0e8173dd4c354b492a6
@@ -168,29 +168,53 @@ stages:
       hash: md5
       md5: 870c7f8a941f6a800587d300911459a0
       size: 50921
+    - path: data/04_model_input/xgb_X.parquet
+      hash: md5
+      md5: e961aa61536b2572cd3991ba9ec352a1
+      size: 17307471
+    - path: data/04_model_input/xgb_X_test.parquet
+      hash: md5
+      md5: 67a6fc2c939cbbc0b7f67cb9c847ba76
+      size: 3387752
+    - path: data/04_model_input/xgb_X_train.parquet
+      hash: md5
+      md5: 5fe6b7cd3cba3dcfca34966b8e6bf756
+      size: 13613691
+    - path: data/04_model_input/xgb_y.parquet
+      hash: md5
+      md5: 704d0d5e66d6a0e8173dd4c354b492a6
+      size: 69087
+    - path: data/04_model_input/xgb_y_test.parquet
+      hash: md5
+      md5: a55d50e1d5d42e209af1c8648ab52869
+      size: 14697
+    - path: data/04_model_input/xgb_y_train.parquet
+      hash: md5
+      md5: 870c7f8a941f6a800587d300911459a0
+      size: 50921
   outlier_handling:
     cmd: kedro run --pipeline=outlier_handling
     deps:
     - path: conf/base/catalog.yml
       hash: md5
-      md5: 703a3e8d7f50f5fa76b46a94a70fc006
-      size: 2031
+      md5: de171e5b666b911ea4d22b5da17f8255
+      size: 2823
     - path: conf/base/parameters_outlier_handling.yml
       hash: md5
       md5: 8e2a2fba99b6123efb807b811711d02f
       size: 1152
     - path: data/04_model_input/lr_X.parquet
       hash: md5
-      md5: 7dde7d4c660261e192d3cc8997f19a17
-      size: 11568603
+      md5: b1c1389dfa71e007b3c6c636ec0da3d7
+      size: 11568593
     - path: data/04_model_input/lr_X_test.parquet
       hash: md5
-      md5: 9ced1d62b543f60ef9b682665fbb2306
-      size: 2265297
+      md5: ce2f73a0267f80a0cac3e21c53da0327
+      size: 2265281
     - path: data/04_model_input/lr_X_train.parquet
       hash: md5
-      md5: b327158c178bf7e4e9e8c7bbe98159e6
-      size: 9081451
+      md5: 261d6aa11fed7751c9dae03ba2d11701
+      size: 9081421
     - path: data/04_model_input/lr_y.parquet
       hash: md5
       md5: 704d0d5e66d6a0e8173dd4c354b492a6
@@ -205,15 +229,15 @@ stages:
       size: 50921
     - path: src/financial_forecasting_platform/pipelines/outlier_handling
       hash: md5
-      md5: c61014dcf8312a5daec34790fd4b7c73.dir
-      size: 7569
-      nfiles: 6
+      md5: ece5f845f670346a428ea5ff8fdf6bd4.dir
+      size: 12683
+      nfiles: 9
     outs:
     - path: data/04_model_input/outlier_clipped_lr_X_test.parquet
       hash: md5
-      md5: d27c7c3f042c5a0a6380c64cf7f37bda
-      size: 2242414
+      md5: ad56b410e97ecf59183de4ecfe05938e
+      size: 2242398
     - path: data/04_model_input/outlier_clipped_lr_X_train.parquet
       hash: md5
-      md5: 2c0f7112f0b2f92f16e9553fcf3a68cc
-      size: 9012809
+      md5: 9b8b47cdaea8c7433a2620ec18dd9813
+      size: 9012818

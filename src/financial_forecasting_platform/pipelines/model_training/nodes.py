@@ -4,6 +4,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
+from xgboost import XGBClassifier
 
 from sklearn.metrics import classification_report, accuracy_score   
 
@@ -58,14 +59,43 @@ def create_lr_pipeline(X: pd.DataFrame, onehot_chr_features: list | None = None,
 
     return pipeline
 
-def train_lr_model(X_train: pd.DataFrame, y_train: pd.Series,
-                   pipeline, param_grid: dict | None = None):
 
-    if param_grid is None:
-        param_grid = {
-        'logreg__C': [0.001, 0.01, 0.1, 1.0, 10.0],
-        'logreg__l1_ratio': [0, 0.25, 0.5, 0.75, 1]
-        }
+def create_xgb_pipeline(onehot_chr_features: list | None = None, 
+                       ordinal_chr_features: list | None = None
+                       ):
+    if onehot_chr_features is None:
+        onehot_chr_features = ["Ticker"]
+    if ordinal_chr_features is None:
+        ordinal_chr_features = ["day_of_week"]
+    
+    day_of_week_order = [['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']]
+    preprocessor = ColumnTransformer(
+        transformers=[
+            (
+                "one_hot_encoder",
+                OneHotEncoder(),
+                onehot_chr_features
+            ),
+            (
+                "ordinal_encoder",
+                OrdinalEncoder(categories=day_of_week_order),
+                ordinal_chr_features
+            )
+        ],
+        remainder="passthrough"
+    )
+
+    pipeline = Pipeline([
+        ("preprocessor", preprocessor),
+        ("xgb", XGBClassifier(objective='binary:logistic',eval_metric='logloss',
+                                random_state=42))
+    ])
+
+    return pipeline
+
+def train_model(X_train: pd.DataFrame, y_train: pd.Series,
+                   pipeline, param_grid: dict):
+
 
     y_train_series = y_train.squeeze()
     

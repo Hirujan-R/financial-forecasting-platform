@@ -41,6 +41,7 @@ mlp_features:
 
 # Data Split
 
+# LR Features
 lr_X:
   type: pandas.ParquetDataset
   filepath: data/04_model_input/lr_X.parquet
@@ -66,6 +67,32 @@ lr_y_test:
   filepath: data/04_model_input/lr_y_test.parquet
 
 
+# XGB Features
+xgb_X:
+  type: pandas.ParquetDataset
+  filepath: data/04_model_input/xgb_X.parquet
+
+xgb_y:
+  type: pandas.ParquetDataset
+  filepath: data/04_model_input/xgb_y.parquet  
+
+xgb_X_train:
+  type: pandas.ParquetDataset
+  filepath: data/04_model_input/xgb_X_train.parquet
+
+xgb_X_test:
+  type: pandas.ParquetDataset
+  filepath: data/04_model_input/xgb_X_test.parquet
+
+xgb_y_train:
+  type: pandas.ParquetDataset
+  filepath: data/04_model_input/xgb_y_train.parquet
+
+xgb_y_test:
+  type: pandas.ParquetDataset
+  filepath: data/04_model_input/xgb_y_test.parquet
+
+
 # Outlier handling
 
 outlier_clipped_lr_X_train:
@@ -85,5 +112,13 @@ lr_training_pipeline:
 lr_mlflow_model_uri:
   type: json.JSONDataset
   filepath: data/05_models/lr_mlflow_model_uri.json
+
+xgb_training_pipeline:
+  type: pickle.PickleDataset
+  filepath: data/04_model_input/xgb_training_pipeline.pkl
+
+xgb_mlflow_model_uri:
+  type: json.JSONDataset
+  filepath: data/05_models/xgb_mlflow_model_uri.json
 
 

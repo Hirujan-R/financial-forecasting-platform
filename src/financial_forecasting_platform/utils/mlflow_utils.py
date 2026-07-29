@@ -1,7 +1,6 @@
 import mlflow
 import mlflow.sklearn
 
-
 def log_sklearn_model(
     model,
     params,
@@ -15,6 +14,10 @@ def log_sklearn_model(
         sk_model=model,
         name=model_name,
         registered_model_name="market_direction_model",
+        skops_trusted_types=[
+            "xgboost.core.Booster",
+            "xgboost.sklearn.XGBClassifier"
+        ]
     )
 
     return model_info.model_uri
