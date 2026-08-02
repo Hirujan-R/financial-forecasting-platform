@@ -1,6 +1,7 @@
 ##########################
 # KEDRO PROJECT
 
+notebooks/**
 # ignore all local configuration
 conf/local/**
 !conf/local/.gitkeep
@@ -160,3 +161,4 @@ venv.bak/
 
 # mlflow local runs
 mlruns/*
+mlflow.db
