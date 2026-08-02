@@ -64,5 +64,19 @@ xgb_param_grid:
     - 0.8
     - 1.0
 
+# MLflow experiment tracking
+lr_experiment_name: "Logistic Regression"
+lr_experiment_tags:
+  model: "Logistic Regression"
+  dataset: "Yahoo Finance"
+  feature_set: "lr_features v1"
+  task: "volatility_regime_prediction"
 lr_training_run_name: lr_model
+
+xgb_experiment_name: "XGBoost"
+xgb_experiment_tags:
+  model: "XGBoost"
+  dataset: "Yahoo Finance"
+  feature_set: "xgb_features v1"
+  task: "volatility_regime_prediction"
 xgb_training_run_name: xgb_model

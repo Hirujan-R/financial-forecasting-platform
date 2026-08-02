@@ -12,8 +12,24 @@ from kedro.framework.startup import bootstrap_project
 # and should be replaced with the ones testing the project
 # functionality
 
+from unittest.mock import patch
+
 class TestKedroRun:
-    def test_kedro_run_no_pipeline(self):
+    @patch("mlflow.evaluate")
+    @patch("mlflow.data.from_pandas")
+    @patch("mlflow.sklearn.log_model")
+    @patch("mlflow.log_params")
+    @patch("mlflow.set_tags")
+    @patch("mlflow.start_run")
+    def test_kedro_run_no_pipeline(
+        self,
+        mock_start_run,
+        mock_set_tags,
+        mock_log_params,
+        mock_log_model,
+        mock_from_pandas,
+        mock_evaluate,
+    ):
         bootstrap_project(Path.cwd())
         with KedroSession.create(project_path=Path.cwd()) as session:
             session.run()

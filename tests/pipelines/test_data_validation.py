@@ -283,6 +283,19 @@ class TestTickerValidation:
         assert isinstance(result, pd.DataFrame)
 
 
+class TestCompositeDataValidation:
+    def test_full_data_validation(self, valid_ohlcv_df):
+        from financial_forecasting_platform.pipelines.data_validation.nodes import data_validation
+        res = data_validation(
+            valid_ohlcv_df,
+            required_columns=("Date", "Ticker", "Open", "High", "Low", "Close", "Volume"),
+            row_id=["Ticker", "Date"],
+            ohlcv_columns=("Open", "High", "Low", "Close", "Volume"),
+            tickers=("AAPL", "MSFT"),
+        )
+        assert isinstance(res, pd.DataFrame)
+
+
 class TestDataValidationPipeline:
     def test_returns_pipeline(self):
         result = create_pipeline()

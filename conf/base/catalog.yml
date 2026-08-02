@@ -109,16 +109,11 @@ lr_training_pipeline:
   type: pickle.PickleDataset
   filepath: data/04_model_input/lr_training_pipeline.pkl
 
-lr_mlflow_model_uri:
-  type: json.JSONDataset
-  filepath: data/05_models/lr_mlflow_model_uri.json
 
 xgb_training_pipeline:
   type: pickle.PickleDataset
   filepath: data/04_model_input/xgb_training_pipeline.pkl
 
-xgb_mlflow_model_uri:
-  type: json.JSONDataset
-  filepath: data/05_models/xgb_mlflow_model_uri.json
+
 
 

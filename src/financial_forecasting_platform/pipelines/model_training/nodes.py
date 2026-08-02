@@ -5,11 +5,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
 from xgboost import XGBClassifier
-
-from sklearn.metrics import classification_report, accuracy_score   
-
-
-
+import mlflow.sklearn
+import mlflow
 
 def create_lr_pipeline(X: pd.DataFrame, onehot_chr_features: list | None = None, 
                        ordinal_chr_features: list | None = None, 
@@ -93,33 +90,56 @@ def create_xgb_pipeline(onehot_chr_features: list | None = None,
 
     return pipeline
 
-def train_model(X_train: pd.DataFrame, y_train: pd.Series,
-                   pipeline, param_grid: dict):
+
+def train_model(experiment_tags: dict, X_train: pd.DataFrame, y_train: pd.Series,
+                    X_test: pd.DataFrame, y_test: pd.Series,
+                    pipeline, param_grid: dict):
+    with mlflow.start_run(nested=True, run_name=experiment_tags["model"]):
+        mlflow.set_tags(experiment_tags)
+        y_train_series = y_train.squeeze()
+        
+        tscv = TimeSeriesSplit(n_splits=5)
+
+        # Configure GridSearchCV
+        grid_search = GridSearchCV(
+            estimator=pipeline,
+            param_grid=param_grid,
+            cv=tscv,
+            scoring='roc_auc',
+            n_jobs=-1
+        )
+
+        print("Starting Grid Search...")
+        grid_search.fit(X_train, y_train_series)   
+
+        print(f"Best Hyperparameters: {grid_search.best_params_}")
+        best_model = grid_search.best_estimator_
+        best_params = grid_search.best_params_
+
+        mlflow.log_params(best_params)
+        model_info = mlflow.sklearn.log_model(
+            sk_model=best_model, 
+            artifact_path=experiment_tags['model'],  # Changed 'name=' to 'artifact_path='
+            registered_model_name=experiment_tags['model'],
+            pyfunc_predict_fn="predict",
+            serialization_format="cloudpickle"  # Note: skops_trusted_types is for skops format
+        )
+        eval_data = pd.DataFrame(X_test)
+        eval_data["target"] = y_test
+
+        eval_dataset = mlflow.data.from_pandas(
+            df=eval_data,
+            targets="target",
+            name=f"{experiment_tags['model']}_features"
+        )
+        mlflow.evaluate(
+            model=model_info.model_uri,
+            data=eval_dataset,
+            model_type="classifier",
+        )
+
+            
+    return model_info.model_uri
 
 
-    y_train_series = y_train.squeeze()
-    
-    tscv = TimeSeriesSplit(n_splits=5)
-
-    # Configure GridSearchCV
-    grid_search = GridSearchCV(
-        estimator=pipeline,
-        param_grid=param_grid,
-        cv=tscv,
-        scoring='roc_auc',
-        n_jobs=-1
-    )
-
-    print("Starting Grid Search...")
-    grid_search.fit(X_train, y_train_series)   
-
-    print(f"Best Hyperparameters: {grid_search.best_params_}")
-    best_model = grid_search.best_estimator_
-    best_params = grid_search.best_params_
-
-    return {
-        "model": best_model,
-        "params": best_params
-    }
-    
 

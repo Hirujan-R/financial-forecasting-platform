@@ -1,6 +1,5 @@
 from kedro.pipeline import Node, Pipeline  # noqa
 from .nodes import create_lr_pipeline, create_xgb_pipeline, train_model
-from financial_forecasting_platform.utils.mlflow_utils import log_sklearn_model
 
 def create_pipeline(**kwargs) -> Pipeline:
     return Pipeline([
@@ -13,19 +12,11 @@ def create_pipeline(**kwargs) -> Pipeline:
             ),
         Node(
                 func=train_model,
-                inputs=["outlier_clipped_lr_X_train", "lr_y_train",
+                inputs=["params:lr_experiment_tags", "outlier_clipped_lr_X_train", "lr_y_train",
+                        "outlier_clipped_lr_X_test", "lr_y_test",
                         "lr_training_pipeline", "params:lr_param_grid"],
-                outputs={
-                    "model": "lr_model",
-                    "params": "lr_params"
-                },
-                name="train_lr_model_node"
-            ),
-        Node(
-                func=log_sklearn_model,
-                inputs=["lr_model", "lr_params", "params:lr_training_run_name"],
                 outputs="lr_mlflow_model_uri",
-                name="log_lr_model_node"
+                name="train_lr_model_node"
             ),
         Node(
                 func=create_xgb_pipeline,
@@ -35,19 +26,10 @@ def create_pipeline(**kwargs) -> Pipeline:
             ),
         Node(
                 func=train_model,
-                inputs=["xgb_X_train", "xgb_y_train",
+                inputs=["params:xgb_experiment_tags","xgb_X_train", "xgb_y_train",
+                        "xgb_X_test", "xgb_y_test",
                         "xgb_training_pipeline", "params:xgb_param_grid"],
-                outputs={
-                    "model": "xgb_model",
-                    "params": "xgb_params"
-                },
-                name="train_xgb_model_node"
-            ),
-        Node(
-                func=log_sklearn_model,
-                inputs=["xgb_model", "xgb_params", "params:xgb_training_run_name"],
                 outputs="xgb_mlflow_model_uri",
-                name="log_xgb_model_node"
-            )
-        
+                name="train_xgb_model_node"
+            ) 
     ])

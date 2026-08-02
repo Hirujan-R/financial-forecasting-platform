@@ -140,8 +140,8 @@ stages:
       size: 18130095
     - path: src/financial_forecasting_platform/pipelines/data_split
       hash: md5
-      md5: db34128601f50236f2207f96521e7641.dir
-      size: 9910
+      md5: ea1c71ba71f5c3d27aa49137225f9964.dir
+      size: 10266
       nfiles: 9
     outs:
     - path: data/04_model_input/lr_X.parquet

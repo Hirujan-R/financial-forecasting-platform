@@ -13,11 +13,22 @@ from financial_forecasting_platform.features.engineering import (
     create_rogers_satchell_variance_feature,
     create_rogers_satchell_variance_rolling_mean_feature,
     create_rogers_satchell_volatility_feature,
+    create_rogers_satchell_regime_feature,
     create_yang_zhang_variance_feature,
     create_yang_zhang_variance_rolling_mean_feature,
     create_yang_zhang_volatility_feature,
     create_yang_zhang_volatility_ratio_feature,
     create_yang_zhang_volatility_features,
+    create_yang_zhang_regime_feature,
+    create_spy_lag_return_feature,
+    create_spy_volatility_feature,
+    create_spy_drawdown_feature,
+    create_spy_sma_ratio_feature,
+    create_spy_return_zscore_feature,
+    create_vix_level_feature,
+    create_vix_lag_return_feature,
+    create_vix_sma_feature,
+    create_vix_percentile_feature,
 )
 
 
@@ -494,3 +505,79 @@ class TestCreateYangZhangVolatilityFeatures:
         original = single_ticker_df.copy()
         create_yang_zhang_volatility_features(single_ticker_df)
         pd.testing.assert_frame_equal(single_ticker_df, original)
+
+
+class TestCreateRogersSatchellRegime:
+    def test_adds_column(self, sample_ohlcv_df):
+        result = create_rogers_satchell_regime_feature(sample_ohlcv_df, short_span=5, long_span=20)
+        assert "rs_regime_5_20" in result.columns
+
+    def test_invalid_spans_raise(self, sample_ohlcv_df):
+        with pytest.raises(ValueError):
+            create_rogers_satchell_regime_feature(sample_ohlcv_df, short_span=20, long_span=5)
+        with pytest.raises(ValueError):
+            create_rogers_satchell_regime_feature(sample_ohlcv_df, short_span=0, long_span=20)
+
+
+class TestCreateYangZhangRegime:
+    def test_adds_column(self, single_ticker_df):
+        result = create_yang_zhang_regime_feature(single_ticker_df, short_span=5, long_span=20)
+        assert "yz_regime_5_20" in result.columns
+
+    def test_invalid_spans_raise(self, single_ticker_df):
+        with pytest.raises(ValueError):
+            create_yang_zhang_regime_feature(single_ticker_df, short_span=20, long_span=5)
+        with pytest.raises(ValueError):
+            create_yang_zhang_regime_feature(single_ticker_df, short_span=0, long_span=20)
+
+
+class TestCreateSpyFeatures:
+    def test_create_spy_lag_return_feature(self, sample_ohlcv_df):
+        res = create_spy_lag_return_feature(sample_ohlcv_df, lag=1)
+        assert "spy_lag_return_1" in res.columns
+
+    def test_create_spy_volatility_feature(self, sample_ohlcv_df):
+        res = create_spy_volatility_feature(sample_ohlcv_df, window_size=5)
+        assert "spy_volatility_5" in res.columns
+
+    def test_create_spy_drawdown_feature(self, sample_ohlcv_df):
+        res = create_spy_drawdown_feature(sample_ohlcv_df, window_size=5)
+        assert "spy_drawdown_5" in res.columns
+
+    def test_create_spy_sma_ratio_feature(self, sample_ohlcv_df):
+        res = create_spy_sma_ratio_feature(sample_ohlcv_df, window_size=5)
+        assert "spy_sma_ratio_5" in res.columns
+
+    def test_create_spy_sma_ratio_invalid(self, sample_ohlcv_df):
+        with pytest.raises(ValueError):
+            create_spy_sma_ratio_feature(sample_ohlcv_df, window_size=0)
+
+    def test_create_spy_return_zscore_feature(self, sample_ohlcv_df):
+        res = create_spy_return_zscore_feature(sample_ohlcv_df, window_size=5)
+        assert "spy_return_zscore_5" in res.columns
+
+    def test_create_spy_return_zscore_invalid(self, sample_ohlcv_df):
+        with pytest.raises(ValueError):
+            create_spy_return_zscore_feature(sample_ohlcv_df, window_size=1)
+
+
+class TestCreateVixFeatures:
+    def test_create_vix_level_feature(self, sample_ohlcv_df):
+        res = create_vix_level_feature(sample_ohlcv_df)
+        assert "vix_level" in res.columns
+
+    def test_create_vix_lag_return_feature(self, sample_ohlcv_df):
+        res = create_vix_lag_return_feature(sample_ohlcv_df, lag=1)
+        assert "vix_return_lag_1" in res.columns
+
+    def test_create_vix_sma_feature(self, sample_ohlcv_df):
+        res = create_vix_sma_feature(sample_ohlcv_df, window_size=5)
+        assert "vix_SMA_5" in res.columns
+
+    def test_create_vix_percentile_feature(self, sample_ohlcv_df):
+        res = create_vix_percentile_feature(sample_ohlcv_df, window_size=5)
+        assert "vix_percentile_5" in res.columns
+
+    def test_create_vix_percentile_invalid(self, sample_ohlcv_df):
+        with pytest.raises(ValueError):
+            create_vix_percentile_feature(sample_ohlcv_df, window_size=0)

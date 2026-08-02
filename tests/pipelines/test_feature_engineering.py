@@ -165,6 +165,42 @@ class TestMlpFeatureEngineering:
             mlp_feature_engineering(ohlcv_df, features=["Ticker", "nonexistent"])
 
 
+def test_default_features_selection(ohlcv_df):
+    df = ohlcv_df.copy()
+    for col in ["log_return_lag_1", "log_return_lag_5", "log_return_lag_10", "log_return_lag_20",
+                "log_distance_close_vs_SMA_5", "log_distance_close_vs_SMA_10", "log_distance_close_vs_SMA_20",
+                "log_return_volatility_5", "log_return_volatility_10", "log_return_volatility_20",
+                "bollinger_upper_distance_20", "bollinger_lower_distance_20", "bollinger_bandwidth_20",
+                "rsi_14", "range_percentage", "body_percentage", "upper_shadow_pct", "lower_shadow_pct",
+                "volume_pct_change_1", "relative_volume_5", "relative_volume_20", "drawdown_20",
+                "sharpe_20", "day_of_week", "month", "market_movement",
+                "log_return_lag_2", "log_return_lag_3", "log_distance_close_vs_SMA_50",
+                "ema5_minus_ema20", "ema12_minus_ema26", "bollinger_upper_distance_10",
+                "bollinger_lower_distance_10", "bollinger_bandwidth_10", "rsi_7", "rsi_21",
+                "daily_range", "candle_body", "upper_shadow", "lower_shadow", "volume_sma_20",
+                "return_x_volume", "drawdown_10", "drawdown_50", "rolling_window_mdd_10",
+                "rolling_window_mdd_20", "rolling_window_mdd_50", "sharpe_10", "momentum_1", "momentum_10"]:
+        df[col] = 1.0
+
+    lr_res = lr_feature_engineering(df)
+    xgb_res = xgboost_feature_engineering(df)
+    mlp_res = mlp_feature_engineering(df)
+    assert len(lr_res.columns) == 27
+    assert len(xgb_res.columns) == 51
+    assert len(mlp_res.columns) == 30
+
+
+def test_merge_dataframes():
+    stock = pd.DataFrame({"Date": ["2024-01-01"], "f1": [1], "Repaired?": [True]})
+    spy = pd.DataFrame({"Date": ["2024-01-01"], "spy1": [2]})
+    vix = pd.DataFrame({"Date": ["2024-01-01"], "vix1": [3]})
+
+    from financial_forecasting_platform.pipelines.feature_engineering.nodes import merge_dataframes
+    merged = merge_dataframes(stock, spy, vix)
+    assert "Repaired?" not in merged.columns
+    assert "f1" in merged.columns and "spy1" in merged.columns and "vix1" in merged.columns
+
+
 class TestFeatureEngineeringPipeline:
     def test_returns_pipeline(self):
         result = create_pipeline()
