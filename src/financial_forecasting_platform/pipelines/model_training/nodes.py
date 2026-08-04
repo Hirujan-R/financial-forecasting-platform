@@ -4,6 +4,9 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
+from sklearn.metrics import roc_auc_score, accuracy_score, precision_score, \
+    recall_score, f1_score
+
 from xgboost import XGBClassifier
 import mlflow.sklearn
 import mlflow
@@ -96,6 +99,16 @@ def train_model(experiment_tags: dict, X_train: pd.DataFrame, y_train: pd.Series
                     pipeline, param_grid: dict):
     with mlflow.start_run(nested=True, run_name=experiment_tags["model"]):
         mlflow.set_tags(experiment_tags)
+
+        # Logging training dataset
+        df_train = X_train.copy()
+        df_train["target"] = y_train
+        train_dataset = mlflow.data.from_pandas(df_train,
+                                               name="Training dataset",
+                                               targets="target")
+        mlflow.log_input(dataset=train_dataset, context='train')
+
+        # Time-series Cross Validation
         y_train_series = y_train.squeeze()
         
         tscv = TimeSeriesSplit(n_splits=5)
@@ -116,6 +129,22 @@ def train_model(experiment_tags: dict, X_train: pd.DataFrame, y_train: pd.Series
         best_model = grid_search.best_estimator_
         best_params = grid_search.best_params_
 
+
+        # Logging evaluation dataset
+        
+        y_pred = best_model.predict(X_test)
+        y_prob = best_model.predict_proba(X_test)[:, 1]
+
+        eval_data = X_test.copy()
+        eval_data["target"] = y_test
+        eval_data["prediction"] = y_pred
+
+        eval_dataset = mlflow.data.from_pandas(eval_data,
+                                               name="Test dataset",
+                                               predictions="prediction",
+                                               targets="target")
+        mlflow.log_input(dataset=eval_dataset, context='test')
+
         mlflow.log_params(best_params)
         model_info = mlflow.sklearn.log_model(
             sk_model=best_model, 
@@ -124,20 +153,17 @@ def train_model(experiment_tags: dict, X_train: pd.DataFrame, y_train: pd.Series
             pyfunc_predict_fn="predict",
             serialization_format="cloudpickle"  # Note: skops_trusted_types is for skops format
         )
-        eval_data = pd.DataFrame(X_test)
-        eval_data["target"] = y_test
 
-        eval_dataset = mlflow.data.from_pandas(
-            df=eval_data,
-            targets="target",
-            name=f"{experiment_tags['model']}_features"
-        )
-        mlflow.evaluate(
-            model=model_info.model_uri,
-            data=eval_dataset,
-            model_type="classifier",
-        )
+        
 
+
+        mlflow.log_metrics({
+            "roc_auc": roc_auc_score(y_test, y_prob),
+            "accuracy": accuracy_score(y_test, y_pred),
+            "precision": precision_score(y_test, y_pred),
+            "recall": recall_score(y_test, y_pred),
+            "f1": f1_score(y_test, y_pred)
+        })
             
     return model_info.model_uri
 

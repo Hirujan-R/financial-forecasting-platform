@@ -1,0 +1,2 @@
+metric: roc_auc
+experiment_name: "financial_forecasting_platform"

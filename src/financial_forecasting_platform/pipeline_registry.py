@@ -7,8 +7,9 @@ import financial_forecasting_platform.pipelines.data_ingestion.pipeline as data_
 import financial_forecasting_platform.pipelines.feature_engineering.pipeline as feature_engineering
 import financial_forecasting_platform.pipelines.data_validation.pipeline as data_validation
 import financial_forecasting_platform.pipelines.data_split as data_split
-import financial_forecasting_platform.pipelines.model_training.pipeline as model_training
 import financial_forecasting_platform.pipelines.outlier_handling as outlier_handling
+import financial_forecasting_platform.pipelines.model_training.pipeline as model_training
+import financial_forecasting_platform.pipelines.model_selection as model_selection
 
 def register_pipelines() -> dict[str, Pipeline]:
     """Register the project's pipelines.
@@ -22,6 +23,7 @@ def register_pipelines() -> dict[str, Pipeline]:
     data_split_pipeline = data_split.create_pipeline()
     outlier_handling_pipeline  = outlier_handling.create_pipeline()
     model_training_pipeline = model_training.create_pipeline()
+    model_selection_pipeline = model_selection.create_pipeline()
 
     pipelines = {}
     pipelines["data_ingestion"] = data_ingestion_pipeline
@@ -30,5 +32,7 @@ def register_pipelines() -> dict[str, Pipeline]:
     pipelines["data_split"] = data_split_pipeline
     pipelines["outlier_handling"] = outlier_handling_pipeline
     pipelines["model_training"] = model_training_pipeline
+    pipelines["model_selection"] = model_selection_pipeline
     pipelines["__default__"] = sum(pipelines.values())
+    
     return pipelines
