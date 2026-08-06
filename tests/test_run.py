@@ -15,6 +15,9 @@ from kedro.framework.startup import bootstrap_project
 from unittest.mock import patch
 
 class TestKedroRun:
+    @patch("mlflow.log_metrics")
+    @patch("mlflow.set_model_version_tag")
+    @patch("mlflow.log_input")
     @patch("mlflow.evaluate")
     @patch("mlflow.data.from_pandas")
     @patch("mlflow.sklearn.log_model")
@@ -29,6 +32,9 @@ class TestKedroRun:
         mock_log_model,
         mock_from_pandas,
         mock_evaluate,
+        mock_log_input,
+        mock_set_tag,
+        mock_log_metrics,
     ):
         bootstrap_project(Path.cwd())
         with KedroSession.create(project_path=Path.cwd()) as session:

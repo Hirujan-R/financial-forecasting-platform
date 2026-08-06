@@ -71,4 +71,4 @@ class TestRegisterPipelines:
 
     def test_total_pipeline_count(self):
         pipelines = register_pipelines()
-        assert len(pipelines) == 7
+        assert len(pipelines) == 8

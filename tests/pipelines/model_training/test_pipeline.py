@@ -27,6 +27,9 @@ def test_create_xgb_pipeline():
     assert isinstance(pipe, Pipeline)
 
 
+@patch("mlflow.log_metrics")
+@patch("mlflow.set_model_version_tag")
+@patch("mlflow.log_input")
 @patch("mlflow.evaluate")
 @patch("mlflow.data.from_pandas")
 @patch("mlflow.sklearn.log_model")
@@ -40,9 +43,13 @@ def test_train_model(
     mock_log_model,
     mock_from_pandas,
     mock_evaluate,
+    mock_log_input,
+    mock_set_tag,
+    mock_log_metrics,
 ):
     mock_model_info = MagicMock()
     mock_model_info.model_uri = "runs:/test/model"
+    mock_model_info.registered_model_version = "1"
     mock_log_model.return_value = mock_model_info
 
     X_train = pd.DataFrame(
@@ -60,6 +67,6 @@ def test_train_model(
     param_grid = {"xgb__n_estimators": [1]}
     tags = {"model": "test_model"}
 
-    uri = train_model(tags, X_train, y_train, X_test, y_test, pipeline, param_grid)
+    uri = train_model(tags, "volatility-expansion-predictor", X_train, y_train, X_test, y_test, pipeline, param_grid)
     assert uri == "runs:/test/model"
 

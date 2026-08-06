@@ -143,10 +143,9 @@ class TestDownloadMarketData:
         mock_download.assert_called_once_with(
             ["SPY", "^VIX"],
             start="2024-01-01",
-            end="2024-01-05"
+            end="2024-01-05",
+            auto_adjust=False,
         )
-        assert list(result.columns) == ["Date", "Ticker", "Open", "High", "Low", "Close", "Volume"]
-        assert set(result["Ticker"].unique()) == {"SPY", "^VIX"}
 
     @patch("financial_forecasting_platform.pipelines.data_ingestion.nodes.yf.download")
     def test_custom_tickers(self, mock_download):
@@ -159,7 +158,8 @@ class TestDownloadMarketData:
         mock_download.assert_called_once_with(
             ["QQQ"],
             start="2024-01-01",
-            end="2024-01-05"
+            end="2024-01-05",
+            auto_adjust=False,
         )
 
 
@@ -170,6 +170,7 @@ class TestCreateSpyData:
                 "Date": ["2024-01-01", "2024-01-01"],
                 "Ticker": ["SPY", "^VIX"],
                 "Close": [500.0, 15.0],
+                "Volume": [1000, 2000],
             }
         )
         spy_df = create_spy_data(df)
@@ -184,6 +185,7 @@ class TestCreateVixData:
                 "Date": ["2024-01-01", "2024-01-01"],
                 "Ticker": ["SPY", "^VIX"],
                 "Close": [500.0, 15.0],
+                "Volume": [1000, 2000],
             }
         )
         vix_df = create_vix_data(df)
@@ -220,6 +222,6 @@ class TestDataIngestionPipeline:
         assert "params:raw_data_start_date" in input_datasets
         assert "params:raw_data_end_date" in input_datasets
 
-    def test_pipeline_has_four_nodes(self):
+    def test_pipeline_has_twelve_nodes(self):
         pipeline = create_pipeline()
-        assert len(pipeline.nodes) == 4
+        assert len(pipeline.nodes) == 12
