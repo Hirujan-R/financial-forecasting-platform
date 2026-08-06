@@ -12,7 +12,8 @@ def create_pipeline(**kwargs) -> Pipeline:
             ),
         Node(
                 func=train_model,
-                inputs=["params:lr_experiment_tags", "outlier_clipped_lr_X_train", "lr_y_train",
+                inputs=["params:lr_experiment_tags", "params:registered_model_name",
+                        "outlier_clipped_lr_X_train", "lr_y_train",
                         "outlier_clipped_lr_X_test", "lr_y_test",
                         "lr_training_pipeline", "params:lr_param_grid"],
                 outputs="lr_mlflow_model_uri",
@@ -26,7 +27,8 @@ def create_pipeline(**kwargs) -> Pipeline:
             ),
         Node(
                 func=train_model,
-                inputs=["params:xgb_experiment_tags","xgb_X_train", "xgb_y_train",
+                inputs=["params:xgb_experiment_tags", "params:registered_model_name",
+                        "xgb_X_train", "xgb_y_train",
                         "xgb_X_test", "xgb_y_test",
                         "xgb_training_pipeline", "params:xgb_param_grid"],
                 outputs="xgb_mlflow_model_uri",

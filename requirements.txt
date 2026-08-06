@@ -17,3 +17,8 @@ catboost
 mlflow
 kedro-mlflow
 boto3
+pydantic
+fastapi
+uvicorn
+psycopg[binary]
+pyscopg2[binary]

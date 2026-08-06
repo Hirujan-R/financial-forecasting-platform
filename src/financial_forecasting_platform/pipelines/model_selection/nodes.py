@@ -1,4 +1,3 @@
-import mlflow
 from mlflow import MlflowClient
 
 
@@ -44,16 +43,3 @@ def assign_champion_alias(
         alias="champion",
         version=model_version,
     )
-
-if __name__ == "__main__":
-    from mlflow import MlflowClient
-
-    client = MlflowClient()
-
-    run = client.get_run("90cc153c0cd2482b9b3dba20f5b95522")
-
-    model_id = run.outputs.model_outputs[0].model_id
-
-    print(model_id)
-
-    print(client.get_logged_model(model_id))

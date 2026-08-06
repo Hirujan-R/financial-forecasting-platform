@@ -94,7 +94,8 @@ def create_xgb_pipeline(onehot_chr_features: list | None = None,
     return pipeline
 
 
-def train_model(experiment_tags: dict, X_train: pd.DataFrame, y_train: pd.Series,
+def train_model(experiment_tags: dict, registered_model_name: str,
+                     X_train: pd.DataFrame, y_train: pd.Series,
                     X_test: pd.DataFrame, y_test: pd.Series,
                     pipeline, param_grid: dict):
     with mlflow.start_run(nested=True, run_name=experiment_tags["model"]):
@@ -119,7 +120,8 @@ def train_model(experiment_tags: dict, X_train: pd.DataFrame, y_train: pd.Series
             param_grid=param_grid,
             cv=tscv,
             scoring='roc_auc',
-            n_jobs=-1
+            n_jobs=-1,
+            refit=True
         )
 
         print("Starting Grid Search...")
@@ -149,10 +151,19 @@ def train_model(experiment_tags: dict, X_train: pd.DataFrame, y_train: pd.Series
         model_info = mlflow.sklearn.log_model(
             sk_model=best_model, 
             artifact_path=experiment_tags['model'],  # Changed 'name=' to 'artifact_path='
-            registered_model_name=experiment_tags['model'],
+            # registered_model_name=experiment_tags['model'],
+            registered_model_name=registered_model_name,
             pyfunc_predict_fn="predict",
             serialization_format="cloudpickle"  # Note: skops_trusted_types is for skops format
         )
+        model_version = model_info.registered_model_version
+        for key, value in experiment_tags.items():
+            mlflow.set_model_version_tag(
+                name=registered_model_name,
+                version=model_version,
+                key=key,
+                value=value
+            )
 
         
 
