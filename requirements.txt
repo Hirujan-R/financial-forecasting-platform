@@ -22,3 +22,8 @@ fastapi
 uvicorn
 psycopg[binary]
 python-dotenv
+streamlit
+plotly
+requests
+plotly
+streamlit

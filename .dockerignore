@@ -1,0 +1,40 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Git
+.git/
+.gitignore
+
+# Data
+data/
+*.csv
+*.parquet
+*.pkl
+*.joblib
+
+# MLflow local files
+mlflow.db
+mlruns/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Environment/secrets
+.env
+.env.*
+
+# Docker
+docker-compose.override.yml

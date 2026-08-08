@@ -1,5 +1,25 @@
+import os
+
 import pandas as pd
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def _isolate_mlflow_env():
+    """Restores MLflow-related env vars after each test.
+
+    Kedro's kedro-mlflow plugin sets ``MLFLOW_TRACKING_URI`` when a session
+    runs; without isolation that leaks into later tests and makes them hit an
+    external/irrelevant MLflow server.
+    """
+    keys = [key for key in os.environ if key.startswith("MLFLOW_")]
+    saved = {key: os.environ[key] for key in keys}
+    try:
+        yield
+    finally:
+        for key in keys:
+            os.environ.pop(key, None)
+        os.environ.update(saved)
 
 @pytest.fixture
 def sample_ohlcv():

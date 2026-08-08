@@ -1,41 +1,29 @@
 """
-This module contains example tests for a Kedro project.
-Tests should be placed in ``src/tests``, in modules that mirror your
-project's structure, and in files named test_*.py.
+Tests for the Kedro project bootstrap and pipeline registry.
 """
-import pytest
 from pathlib import Path
-from kedro.framework.session import KedroSession
+
 from kedro.framework.startup import bootstrap_project
 
-# The tests below are here for the demonstration purpose
-# and should be replaced with the ones testing the project
-# functionality
+from financial_forecasting_platform.pipeline_registry import register_pipelines
 
-from unittest.mock import patch
+EXPECTED_PIPELINES = {
+    "data_ingestion",
+    "data_validation",
+    "feature_engineering",
+    "data_split",
+    "outlier_handling",
+    "model_training",
+    "model_selection",
+    "__default__",
+}
 
-class TestKedroRun:
-    @patch("mlflow.log_metrics")
-    @patch("mlflow.set_model_version_tag")
-    @patch("mlflow.log_input")
-    @patch("mlflow.evaluate")
-    @patch("mlflow.data.from_pandas")
-    @patch("mlflow.sklearn.log_model")
-    @patch("mlflow.log_params")
-    @patch("mlflow.set_tags")
-    @patch("mlflow.start_run")
-    def test_kedro_run_no_pipeline(
-        self,
-        mock_start_run,
-        mock_set_tags,
-        mock_log_params,
-        mock_log_model,
-        mock_from_pandas,
-        mock_evaluate,
-        mock_log_input,
-        mock_set_tag,
-        mock_log_metrics,
-    ):
-        bootstrap_project(Path.cwd())
-        with KedroSession.create(project_path=Path.cwd()) as session:
-            session.run()
+
+def test_project_bootstraps():
+    bootstrap_project(Path.cwd())
+
+
+def test_pipeline_registry_registers_all_pipelines():
+    bootstrap_project(Path.cwd())
+    pipelines = register_pipelines()
+    assert set(pipelines) == EXPECTED_PIPELINES

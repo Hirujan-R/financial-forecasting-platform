@@ -1,0 +1,113 @@
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: market_prediction_postgres
+
+    environment:
+      POSTGRES_DB: market_prediction
+      POSTGRES_USER: market_user
+      POSTGRES_PASSWORD: market_password
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U market_user -d market_prediction"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+
+    container_name: market_prediction_mlflow
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    environment:
+      MLFLOW_BACKEND_STORE_URI: postgresql://market_user:market_password@postgres:5432/mlflow
+      MLFLOW_ARTIFACTS_DESTINATION: /mlruns
+      MLFLOW_SERVER_ALLOWED_HOSTS: "localhost:*,127.0.0.1:*,mlflow:*,api:*,dashboard:*,postgres:*"
+
+    volumes:
+      - mlflow_artifacts:/mlruns
+
+    ports:
+      - "5001:5000"
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+
+    container_name: market_prediction_api
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mlflow:
+        condition: service_healthy
+
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_NAME: market_prediction
+      DATABASE_USER: market_user
+      DATABASE_PASSWORD: market_password
+      DATABASE_PORT: "5432"
+      DATABASE_SSLMODE: disable
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+
+    ports:
+      - "8000:8000"
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/', timeout=3).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+
+    container_name: market_prediction_dashboard
+
+    depends_on:
+      api:
+        condition: service_healthy
+
+    environment:
+      DASHBOARD_API_URL: http://api:8000
+
+    ports:
+      - "8501:8501"
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health', timeout=3).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
+volumes:
+  postgres_data:
+  mlflow_artifacts:
