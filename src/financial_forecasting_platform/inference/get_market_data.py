@@ -1,17 +1,42 @@
-import yfinance as yf
+from datetime import datetime
+
 import pandas as pd
-from datetime import datetime, timedelta
-from financial_forecasting_platform.database.stock_repository \
-    import get_stock_data_between_dates
-from financial_forecasting_platform.database.spy_repository \
-    import get_spy_data_between_dates
-from financial_forecasting_platform.database.vix_repository \
-    import get_vix_data_between_dates
-from financial_forecasting_platform.pipelines.data_ingestion.nodes \
-    import download_ohlcv_data, download_market_data, get_spy_data, get_vix_data, \
-    save_stock_data_to_database, save_spy_data_to_database, save_vix_data_to_database, \
-    create_spy_data, create_vix_data
-from .load_parameters import load_parameters
+
+from financial_forecasting_platform.database.spy_repository import (
+    get_spy_data_between_dates,
+)
+from financial_forecasting_platform.database.stock_repository import (
+    get_stock_data_between_dates,
+)
+from financial_forecasting_platform.database.vix_repository import (
+    get_vix_data_between_dates,
+)
+from financial_forecasting_platform.pipelines.data_ingestion.nodes import (
+    create_spy_data,
+    create_vix_data,
+    download_market_data,
+    download_ohlcv_data,
+    save_spy_data_to_database,
+    save_stock_data_to_database,
+    save_vix_data_to_database,
+)
+
+
+def _download_stock_fill(ticker: str, start_date, end_date) -> pd.DataFrame:
+    """Download OHLCV for a fill window, tolerating windows with no trading days.
+
+    ``download_ohlcv_data`` raises when the requested window is empty (e.g. a
+    backfill window that only spans a weekend). Fill windows are best-effort:
+    an empty result simply means there is nothing new to insert.
+    """
+    try:
+        return download_ohlcv_data(
+            tickers=[ticker],
+            start_date=start_date,
+            end_date=end_date,
+        )
+    except ValueError:
+        return pd.DataFrame()
 
 def _ensure_stock_data(
     ticker: str,
@@ -49,10 +74,10 @@ def _ensure_stock_data(
 
         if earliest > start_date:
 
-            missing_df = download_ohlcv_data(
-                tickers=[ticker],
-                start_date=start_date,
-                end_date=earliest, #- pd.Timedelta(days=1),
+            missing_df = _download_stock_fill(
+                ticker,
+                start_date,
+                earliest,
             )
 
             if not missing_df.empty:
@@ -60,10 +85,10 @@ def _ensure_stock_data(
 
         if latest < end_date:
 
-            missing_df = download_ohlcv_data(
-                tickers=[ticker],
-                start_date=latest, #+ pd.Timedelta(days=1),
-                end_date=end_date,
+            missing_df = _download_stock_fill(
+                ticker,
+                latest,
+                end_date,
             )
 
             if not missing_df.empty:
