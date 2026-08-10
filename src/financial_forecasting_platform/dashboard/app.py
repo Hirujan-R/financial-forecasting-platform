@@ -19,10 +19,7 @@ from financial_forecasting_platform.dashboard.components.shap_plot import (
 )
 from financial_forecasting_platform.dashboard.components.tables import (
     render_feature_values,
-    render_model_stats,
-    render_prediction_history,
 )
-from financial_forecasting_platform.dashboard.config import get_history_limit
 from financial_forecasting_platform.dashboard.styles import inject_styles
 from financial_forecasting_platform.inference.load_parameters import load_parameters
 
@@ -32,11 +29,6 @@ TICKERS = load_parameters()["tickers"]
 @st.cache_resource
 def _get_client() -> ApiClient:
     return ApiClient()
-
-
-@st.cache_data(ttl=60)
-def _fetch_history(limit: int) -> list:
-    return _get_client().get_history(limit)
 
 
 def _load_prediction(ticker: str) -> dict:
@@ -82,12 +74,6 @@ def main() -> None:
         render_feature_values(prediction["features"])
     with col_explain:
         render_prediction_explanation(prediction)
-
-    col_history, col_stats = st.columns(2)
-    with col_history:
-        render_prediction_history(_fetch_history(get_history_limit()))
-    with col_stats:
-        render_model_stats(prediction["model_stats"])
 
 
 if __name__ == "__main__":

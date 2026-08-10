@@ -94,31 +94,3 @@ def test_load_prediction_raises_api_error():
     ):
         with pytest.raises(ApiError, match="API is down"):
             dashboard_app._load_prediction("AAPL")
-
-
-def test_fetch_history_returns_logs():
-    fake_client = MagicMock()
-    fake_client.get_history.return_value = [
-        {
-            "prediction_id": "u1",
-            "timestamp": "2026-08-06T12:00:00",
-            "ticker": "AAPL",
-            "prediction": 1,
-            "probability": 0.82,
-            "model_name": "XGBoost",
-            "model_version": 3,
-            "actual_outcome": None,
-            "correct": None,
-        }
-    ]
-
-    dashboard_app._fetch_history.clear()
-
-    with patch.object(
-        dashboard_app, "_get_client", return_value=fake_client
-    ):
-        result = dashboard_app._fetch_history(10)
-
-    assert len(result) == 1
-    assert result[0]["ticker"] == "AAPL"
-    fake_client.get_history.assert_called_once_with(10)
