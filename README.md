@@ -1,884 +1,273 @@
-# Volatility Regime Prediction Model
+# Financial Forecasting Platform — Volatility Regime Prediction
 
 [![Powered by Kedro](https://img.shields.io/badge/powered_by-kedro-ffc900?logo=kedro)](https://kedro.org)
 
-A machine learning project that predicts future volatility regimes in equity markets using historical OHLCV data, technical indicators, volatility estimators, and market context features.
+A machine learning platform that predicts whether a stock is about to enter a
+**volatility expansion** or **volatility contraction** regime, built end-to-end
+from experiment to a public HTTPS dashboard on AWS.
 
-The project builds an end-to-end reproducible machine learning workflow using **Kedro**, **DVC**, and **MLflow** for pipeline orchestration, data versioning, experiment tracking, and model management.
-
-The objective is to classify whether a stock is likely to enter a period of **higher volatility (volatility expansion)** or **lower volatility (volatility contraction)**.
+The project is a full MLOps stack: a Kedro experimentation pipeline, DVC data
+versioning, MLflow experiment tracking + model registry, a FastAPI serving layer,
+a Streamlit dashboard, and GitHub Actions CI/CD — all deployed on AWS (ECS
+Fargate, RDS, S3, ALB, Route 53).
 
 ---
 
-# Overview
+## Goal of the project
 
-Financial markets are not stationary and frequently transition between different volatility environments. Periods of low volatility can precede large market movements, while periods of elevated volatility can eventually revert back to calmer conditions.
+Financial markets are not stationary — they repeatedly transition between calm
+and volatile environments. This project builds a binary classifier that answers:
 
-This project attempts to identify these volatility regime transitions using machine learning.
+> **"Is this stock likely to enter a higher-volatility regime in the near future?"**
 
-The model predicts:
-
-| Class | Description |
+| Class | Meaning |
 |---|---|
-| 0 | Volatility contraction regime |
-| 1 | Volatility expansion regime |
+| `0` | Volatility contraction regime |
+| `1` | Volatility expansion regime |
 
-The model is trained on the following stocks:
+The model is trained on daily OHLCV data for **GOOG, AAPL, MSFT, NVDA**, with
+**SPY** (market index) and **VIX** (fear index) added as market-context features.
 
-- Google (GOOG)
-- Apple (AAPL)
-- Microsoft (MSFT)
-- NVIDIA (NVDA)
+### Target definition
 
----
-
-# Machine Learning Objective
-
-The target variable is created using the **Garman-Klass realised volatility estimator**.
-
-The model predicts whether future realised volatility will exceed the current volatility baseline.
-
-The target generation process:
+The target uses the **Garman-Klass realised volatility estimator**:
 
 ```
-Calculate historical volatility baseline
-            |
-            v
-Calculate future realised volatility
-            |
-            v
-Compare future volatility against historical volatility
-            |
-            v
-Classify volatility regime
-```
-
-Target definition:
-
-```
-Future volatility > Historical volatility
-                |
-                v
-        Volatility expansion (1)
-
-
-Future volatility <= Historical volatility
-                |
-                v
-        Volatility contraction (0)
-```
-
-This allows the model to learn market conditions associated with upcoming volatility changes.
-
----
-
-# Project Architecture
-
-```
-                         Raw Market Data
-                                |
-                                v
-                         Data Validation
-                                |
-                                v
-                       Feature Engineering
-                                |
-                                v
-                     Feature / Target Split
-                                |
-                                v
-                  Chronological Train/Test Split
-                                |
-                 +--------------+--------------+
-                 |                             |
-                 v                             v
-        Logistic Regression              XGBoost Classifier
-                 |                             |
-                 +--------------+--------------+
-                                |
-                                v
-                         Model Evaluation
-                                |
-                                v
-                           MLflow Tracking
-                                |
-                                v
-                         Model Registry
+trailing 20-day Garman-Klass variance   (baseline)
+             │
+             ▼
+forward 5-day Garman-Klass variance     (realised)
+             │
+             ▼
+forward > baseline  →  class 1 (expansion)
+forward ≤ baseline  →  class 0 (contraction)
 ```
 
 ---
 
-# Technologies Used
+## Experimentation pipeline
 
-## Programming Language
+The experimentation side is orchestrated with **Kedro** as a chain of modular
+pipelines:
 
-- Python
+```
+data_ingestion → data_validation → feature_engineering → data_split
+      → outlier_handling → model_training → model_selection
+```
 
-
-## Machine Learning
-
-- Scikit-learn
-- XGBoost
-- NumPy
-- Pandas
-
-
-## Data Engineering
-
-- Kedro
-- Kedro Pipelines
-- Parquet datasets
-
-
-## Experiment Tracking
-
-- MLflow
-
-Used for:
-
-- Experiment tracking
-- Hyperparameter logging
-- Metric comparison
-- Model artifact storage
-- Model versioning
-
-
-## Data Version Control
-
-- DVC
-
-Used for:
-
-- Dataset versioning
-- Pipeline reproducibility
-- Tracking feature dataset changes
-- Reproducing experiments
-
+1. **Data ingestion** — incremental download of OHLCV from Yahoo Finance into PostgreSQL.
+2. **Data validation** — 8 checks: non-empty, required columns, no missing values,
+   column dtypes, no duplicates, OHLCV financial consistency, date/gap/future checks,
+   ticker whitelist.
+3. **Feature engineering** — ~30 config-driven feature builders producing three
+   model-specific datasets (LR, XGBoost, MLP):
+   - price momentum / log returns / lagged returns
+   - trend (SMA, EMA, distance from moving averages, EMA crossovers)
+   - volatility (Garman-Klass, Parkinson, Rogers-Satchell, Yang-Zhang, Bollinger, vol-of-vol)
+   - candle structure, volume, risk (drawdown, Sharpe), and SPY/VIX market context
+4. **Data split** — chronological 80/20 train/test split.
+5. **Outlier handling** — IsolationForest flagging + 1%/99% quantile clipping.
+6. **Model training** — two classifiers:
+   - **Logistic Regression** (StandardScaler + RobustScaler + OHE preprocessing)
+   - **XGBoost** (gradient-boosted trees)
+   - hyperparameters tuned via `GridSearchCV` with **TimeSeriesSplit(5)**,
+     scored on ROC-AUC to avoid look-ahead leakage.
+7. **Model selection** — picks the best run by ROC-AUC from MLflow and assigns the
+   `champion` alias to the winning model version.
 
 ---
 
-# Project Structure
+## Results
 
-```
-volatility-regime-prediction/
-│
-├── data/
-│   ├── 01_raw/
-│   ├── 02_intermediate/
-│   ├── 03_primary/
-│   └── 04_feature/
-│
-├── src/
-│   └── volatility_regime_prediction/
-│       │
-│       ├── pipelines/
-│       │   ├── data_processing/
-│       │   ├── feature_engineering/
-│       │   └── modelling/
-│       │
-│       ├── features/
-│       ├── models/
-│       └── utils/
-│
-├── conf/
-│   └── base/
-│       ├── catalog.yml
-│       ├── parameters.yml
-│       └── globals.yml
-│
-├── notebooks/
-│
-├── mlruns/
-│
-├── dvc.yaml
-├── pyproject.toml
-└── README.md
-```
+The current **champion** is the **Logistic Regression** model
+(`volatility-expansion-predictor` v1), evaluated on the held-out chronological test set:
 
----
-
-# Dataset
-
-Historical daily OHLCV data is used for:
-
-```
-GOOG
-AAPL
-MSFT
-NVDA
-```
-
-Each observation contains:
-
-| Feature | Description |
+| Metric | Value |
 |---|---|
-| Date | Trading date |
-| Ticker | Stock symbol |
-| Open | Opening price |
-| High | Daily high price |
-| Low | Daily low price |
-| Close | Closing price |
-| Volume | Trading volume |
+| ROC-AUC | **0.735** |
+| Accuracy | **0.673** |
+| Precision | **0.684** |
+| Recall | **0.455** |
+| F1 | **0.546** |
+
+All metrics are recorded per-run in MLflow, so historical experiments can be
+compared and the champion can be re-promoted automatically.
 
 ---
 
-# Feature Engineering
+## MLOps pipeline
 
-The feature engineering pipeline creates features across several market dimensions:
+```
+                 ┌────────────────────────────────────────────┐
+                 │          GitHub Actions (CI/CD)             │
+                 │  run tests → build images → push to ECR     │
+                 │  → force ECS deployment (OIDC role)         │
+                 └───────────────┬────────────────────────────┘
+                                 ▼
+                 ┌────────────────────────────────────────────┐
+   Route 53 ──►  │  ALB (HTTPS)  ── dashboard.* / api.*        │
+                 └────────┬───────────────┬────────────────────┘
+                          ▼               ▼
+                 Streamlit dashboard  FastAPI serving
+                 (ECS Fargate)        (ECS Fargate)
+                          │               │
+                          └──────┬────────┘
+                                 ▼
+                    MLflow (tracking + registry, internal)
+                          │
+                 RDS PostgreSQL (app + mlflow DB)   S3 (model artifacts)
+                 Secrets Manager (credentials)
+```
 
-- Price momentum
-- Trend behaviour
-- Volatility dynamics
-- Market stress
-- Volume activity
-- Risk-adjusted performance
-- Broader market conditions
+**Components**
 
+| Layer | Technology |
+|---|---|
+| Orchestration | Kedro pipelines |
+| Data versioning | DVC (raw data, features, pipeline outputs) |
+| Experiment tracking | MLflow (params, metrics, artifacts, model registry) |
+| Serving | FastAPI (`/prediction/{ticker}`, `/history`) |
+| Dashboard | Streamlit (prediction card, gauge, candles + Bollinger, SHAP, market overview) |
+| Compute | AWS ECS Fargate (ARM64 tasks) |
+| Database | RDS PostgreSQL (private) |
+| Object storage | S3 (MLflow artifacts + DVC remote) |
+| Secrets | AWS Secrets Manager (no plaintext in task definitions) |
+| Public entry | ALB + ACM TLS + Route 53 (`dashboard.*`, `api.*`) |
+| CI/CD | GitHub Actions with OIDC (`github-actions-role`), per-container workflows |
+
+**CI/CD flow**
+
+```
+push to main
+   │
+   ▼
+"Run tests" workflow (pytest — must pass)
+   │  success
+   ▼
+deploy-api.yml / deploy-dashboard.yml / deploy-mlflow.yml
+   │  (each) assume github-actions-role via OIDC
+   │        build Dockerfile → push to ECR (latest + commit SHA)
+   │        force-new-deployment on the ECS service
+   ▼
+ECS pulls the new image → rolling deploy → ALB health check
+```
+
+**Security boundaries**
+
+- Public (internet): ALB only — the dashboard and API.
+- Internal-only: MLflow (task security group + your IP), RDS (not publicly
+  accessible), S3 (private).
+- Secrets injected at runtime from Secrets Manager; IAM roles scoped to
+  least privilege (execution role, task role, CI role).
 
 ---
 
-# Price Features
+## Replicate the results
 
-## Returns
-
-Lagged returns and log returns are created to capture recent price movements.
-
-Examples:
-
-```
-return_lag_1
-return_lag_5
-return_lag_10
-
-log_return_lag_1
-log_return_lag_20
-```
-
----
-
-## Momentum
-
-Momentum measures the speed and direction of price movement.
-
-Example:
-
-```
-momentum_20
-```
-
-Formula:
-
-```
-Momentum = Close(t) - Close(t-n)
-```
-
----
-
-# Trend Features
-
-## Moving Averages
-
-Implemented:
-
-- Simple Moving Average (SMA)
-- Exponential Moving Average (EMA)
-
-
-Examples:
-
-```
-SMA_20
-SMA_50
-
-ema_12
-ema_26
-```
-
----
-
-## Moving Average Distance
-
-Measures how far the current price deviates from its historical average.
-
-Examples:
-
-```
-distance_close_vs_SMA_20
-
-log_distance_close_vs_SMA_20
-```
-
----
-
-## EMA Crossover
-
-Captures potential trend changes.
-
-Example:
-
-```
-ema5_minus_ema20
-```
-
-Formula:
-
-```
-Short EMA - Long EMA
-```
-
----
-
-# Volatility Features
-
-Multiple volatility estimators are implemented to capture different aspects of market uncertainty.
-
----
-
-## Garman-Klass Volatility
-
-Uses:
-
-- Open
-- High
-- Low
-- Close
-
-Features:
-
-```
-gk_variance_lag_n
-
-gk_variance_mean_n
-
-gk_regime_short_long
-```
-
----
-
-## Parkinson Volatility
-
-Uses high-low price ranges.
-
-Features:
-
-```
-parkinson_variance
-
-parkinson_volatility
-
-parkinson_vol_of_vol
-
-parkinson_regime
-```
-
----
-
-## Rogers-Satchell Volatility
-
-Accounts for directional price movement.
-
-Features:
-
-```
-rogers_satchell_variance
-
-rs_volatility
-
-rs_vol_of_vol
-
-rs_regime
-```
-
----
-
-## Yang-Zhang Volatility
-
-Combines:
-
-- Overnight price gaps
-- Open-close movement
-- Rogers-Satchell volatility
-
-
-Features:
-
-```
-yz_variance
-
-yz_variance_mean
-
-yz_volatility
-
-yz_vol_of_vol
-
-yz_regime
-
-yz_volatility_ratio
-```
-
----
-
-# Technical Indicators
-
-## Bollinger Bands
-
-Used to capture volatility compression and breakout conditions.
-
-Features:
-
-```
-bollinger_upper_distance
-
-bollinger_lower_distance
-
-bollinger_bandwidth
-```
-
----
-
-## Relative Strength Index (RSI)
-
-Measures momentum extremes.
-
-Feature:
-
-```
-rsi_14
-```
-
----
-
-## Candle Features
-
-Candlestick structure features:
-
-```
-candle_body
-
-body_percentage
-
-upper_shadow
-
-lower_shadow
-
-upper_shadow_pct
-
-lower_shadow_pct
-```
-
-These capture:
-
-- Buying pressure
-- Selling pressure
-- Market indecision
-
----
-
-# Volume Features
-
-Volume-based features:
-
-```
-volume_pct_change
-
-volume_sma
-
-relative_volume
-
-return_x_volume
-```
-
-These measure:
-
-- Trading activity
-- Strength behind price movements
-- Market participation
-
----
-
-# Risk Features
-
-Risk-related features:
-
-```
-drawdown
-
-rolling_window_mdd
-
-rolling_sharpe_ratio
-```
-
-These capture:
-
-- Market stress
-- Downside risk
-- Risk-adjusted returns
-
----
-
-# Market Context Features
-
-Additional market information is incorporated using SPY and VIX features.
-
----
-
-# SPY Features
-
-Market index features:
-
-```
-spy_lag_return
-
-spy_volatility
-
-spy_drawdown
-
-spy_sma_ratio
-
-spy_return_zscore
-```
-
-These provide broader market context.
-
----
-
-# VIX Features
-
-VIX represents market fear and expected volatility.
-
-Features:
-
-```
-vix_level
-
-vix_return_lag
-
-vix_SMA
-
-vix_percentile
-```
-
----
-
-# Machine Learning Models
-
-Two classification models are trained.
-
----
-
-# Logistic Regression
-
-A linear baseline model used to understand relationships between market features and volatility regimes.
-
-Pipeline:
-
-```
-Feature Scaling
-        |
-        v
-Logistic Regression
-```
-
-Advantages:
-
-- Interpretable coefficients
-- Fast training
-- Strong baseline model
-
-
-Hyperparameters are optimised using:
-
-```
-GridSearchCV
-```
-
----
-
-# XGBoost Classifier
-
-A gradient boosted decision tree model designed to capture nonlinear relationships.
-
-Pipeline:
-
-```
-Feature Dataset
-        |
-        v
-XGBoost Classifier
-```
-
-Advantages:
-
-- Captures feature interactions
-- Handles nonlinear patterns
-- Robust with financial features
-
-
-Optimised hyperparameters:
-
-- Learning rate
-- Maximum tree depth
-- Number of estimators
-- Subsample ratio
-- Feature sampling ratio
-
----
-
-# Model Training Pipeline
-
-```
-Raw Data
-    |
-    v
-Feature Engineering
-    |
-    v
-Missing Value Handling
-    |
-    v
-Feature/Target Split
-    |
-    v
-Chronological Train-Test Split
-    |
-    v
-Feature Scaling
-    |
-    v
-Hyperparameter Optimisation
-    |
-    v
-Model Training
-    |
-    v
-Evaluation
-    |
-    v
-MLflow Logging
-```
-
----
-
-# Evaluation Metrics
-
-Models are evaluated using:
-
-## Classification Metrics
-
-- Accuracy
-- Precision
-- Recall
-- F1-score
-
-
-## Additional Metrics
-
-- ROC-AUC
-- Confusion Matrix
-- Feature Importance
-- Model coefficients
-
-
----
-
-# MLOps Workflow
-
-## Kedro
-
-Kedro manages the machine learning workflow by providing:
-
-- Modular pipelines
-- Data catalog management
-- Parameter management
-- Reproducible execution
-
-
-Pipeline structure:
-
-```
-Data Processing
-        |
-        v
-Feature Engineering
-        |
-        v
-Model Training
-        |
-        v
-Model Evaluation
-```
-
----
-
-# DVC
-
-DVC provides dataset and pipeline version control.
-
-Example workflow:
-
-```
-Change Dataset
-        |
-        v
-dvc repro
-        |
-        v
-Rebuild Pipeline
-        |
-        v
-Generate New Experiment
-```
-
-DVC tracks:
-
-- Raw market data
-- Feature datasets
-- Pipeline outputs
-
----
-
-# MLflow
-
-MLflow tracks experiments and manages model versions.
-
-Logged information:
-
-- Hyperparameters
-- Training metrics
-- Validation metrics
-- Model artefacts
-
-
-Example experiment structure:
-
-```
-Volatility Regime Prediction
-
-|
-├── Logistic Regression Experiment
-|
-└── XGBoost Experiment
-```
-
----
-
-# Reproducibility
-
-The complete pipeline can be reproduced using:
+### 1. Clone and install
 
 ```bash
-dvc repro
-```
+git clone https://github.com/Hirujan-R/financial-forecasting-platform.git
+cd financial-forecasting-platform
 
-This will:
-
-1. Check data dependencies
-2. Run Kedro pipelines
-3. Generate features
-4. Train models
-5. Produce evaluation results
-
----
-
-# Installation
-
-Clone repository:
-
-```bash
-git clone <repository-url>
-
-cd volatility-regime-prediction
-```
-
-Install dependencies:
-
-```bash
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
+pip install -e ".[dev]"
 ```
 
----
-
-# Running the Project
-
-Run the Kedro pipeline:
+### 2. Run the tests
 
 ```bash
+pytest tests/ -q
+```
+
+### 3. Run the experimentation pipeline
+
+```bash
+# Run all Kedro pipelines (ingestion → validation → features → split → training → selection)
 kedro run
-```
 
-Run the DVC pipeline:
+# Or just the training stage
+kedro run --pipeline=model_training
 
-```bash
+# DVC-managed variant
 dvc repro
 ```
 
-Launch MLflow UI:
+> Data ingestion requires a reachable PostgreSQL database. Connection settings
+> are read from environment variables (`DATABASE_HOST`, `DATABASE_NAME`,
+> `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_PORT`, `DATABASE_SSLMODE` —
+> see `src/financial_forecasting_platform/database/connection.py`), or are
+> provided automatically by the local `docker-compose` stack. The datasets in
+> `data/` are versioned with **DVC** — pull them from the configured remote with
+> `dvc pull` if you want to run the feature/model stages without re-downloading.
+
+### 4. Inspect experiments
+
+Start MLflow and open the UI:
 
 ```bash
 mlflow ui
 ```
 
----
+Or query runs/metrics programmatically:
 
-# Future Improvements
-
-## Modelling Improvements
-
-Potential improvements:
-
-- LightGBM implementation
-- Neural network models
-- Temporal models:
-  - LSTM
-  - Temporal CNN
-  - Transformers
-
-- Probability calibration for regime confidence scores
-
-
----
-
-## Feature Improvements
-
-Potential additional features:
-
-- Options implied volatility
-- Market breadth indicators
-- Sector performance
-- Macroeconomic variables
-- Interest rates
-- Credit spreads
-- Asset correlation features
-
-
----
-
-## Deployment Architecture
-
-Possible production architecture:
-
-```
-Scheduled Market Data Ingestion
-              |
-              v
-Feature Engineering Pipeline
-              |
-              v
-MLflow Model Registry
-              |
-              v
-FastAPI Prediction API
-              |
-              v
-Dashboard / Monitoring System
+```bash
+python scripts/query_mlflow.py --runs --limit 10
 ```
 
+### 5. Run the local stack (Docker Compose)
+
+The whole serving stack can run locally:
+
+```bash
+docker compose up --build
+```
+
+- Dashboard: http://localhost:8501
+- API: http://localhost:8000
+- MLflow: http://localhost:5001
+
+### 6. Deploy to AWS
+
+The cloud deployment uses the same Docker images and CI/CD. Once the code is
+pushed to `main`, the test workflow runs first, then each container is rebuilt,
+pushed to ECR, and the ECS services are redeployed. Live URLs after deployment:
+
+- Dashboard: `https://dashboard.hiru-volatility-expansion-prediction.com`
+- API: `https://api.hiru-volatility-expansion-prediction.com`
+
 ---
 
-# Author
+## Project structure
 
-Hirujan Rangaraj
+```
+financial-forecasting-platform/
+├── conf/                       # Kedro config (catalog, parameters, mlflow)
+├── data/                       # DVC-tracked datasets (01_raw … 08_reporting)
+├── db/                         # Local bootstrap SQL for docker-compose
+├── docs/
+├── notebooks/                  # EDA notebooks
+├── scripts/
+│   └── query_mlflow.py         # Retrieve experiment results
+├── src/financial_forecasting_platform/
+│   ├── api/                    # FastAPI app + schemas
+│   ├── dashboard/              # Streamlit app + components
+│   ├── database/               # Postgres repositories + schema
+│   ├── features/               # Feature engineering functions
+│   ├── inference/              # Predictor, market data, model loading
+│   └── pipelines/              # Kedro pipelines
+├── tests/                      # pytest suite
+├── .github/workflows/          # tests.yml + per-container deploy workflows
+├── Dockerfile.api / .dashboard / .mlflow
+├── docker-compose.yml
+├── dvc.yaml
+└── pyproject.toml
+```
 
-Computer Science MEng  
-University of Birmingham
+---
 
+## Author
+
+**Hirujan Rangaraj** — Computer Science MEng, University of Birmingham.
